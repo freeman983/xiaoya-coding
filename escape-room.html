@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🏚️ 逃离密室</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin:0; padding:0; height:100%; overflow:hidden; background:#000;
+    font-family:"Comic Sans MS","PingFang SC",sans-serif; user-select:none; -webkit-user-select:none; touch-action:none; }
+  #view { position:fixed; inset:0; width:100%; height:100%; image-rendering:pixelated; background:#000; }
+  /* HUD */
+  #hud { position:fixed; inset:0; pointer-events:none; z-index:5; }
+  .hbox { position:absolute; background:rgba(0,0,0,0.45); color:#fff; border-radius:14px; padding:6px 12px; font-size:18px; }
+  #coins { top:10px; right:12px; color:#ffd23c; font-weight:bold; font-size:22px; }
+  #healthWrap { top:10px; left:12px; width:180px; }
+  #healthBar { height:16px; background:#2ecc40; border-radius:8px; transition:width 0.2s; }
+  #msg { top:42%; left:50%; transform:translateX(-50%); font-size:34px; color:#ff3b3b; text-shadow:2px 2px 6px #000;
+         background:none; text-align:center; display:none; }
+  #scare { position:fixed; inset:0; background:rgba(120,0,0,0); z-index:6; pointer-events:none; transition:background 0.1s; }
+  /* 武器 / 手 */
+  #weapon { position:fixed; bottom:-6px; left:50%; transform:translateX(-30%); font-size:120px; z-index:4;
+            pointer-events:none; filter:drop-shadow(0 -3px 4px rgba(0,0,0,0.6)); transition:transform 0.07s; }
+  #weapon.fire { transform:translateX(-30%) translateY(-14px) rotate(-8deg); }
+  #flash { position:fixed; bottom:120px; left:46%; font-size:80px; z-index:4; display:none; pointer-events:none; }
+  #vehicle { position:fixed; bottom:4px; left:14px; font-size:72px; z-index:4; display:none;
+             pointer-events:none; filter:drop-shadow(0 -3px 4px rgba(0,0,0,0.5)); }
+  /* 控制 */
+  #controls { position:fixed; inset:0; z-index:7; }
+  #dpad { position:absolute; left:18px; bottom:18px; width:174px; height:174px; }
+  .dp { width:56px; height:56px; font-size:24px; background:rgba(255,255,255,0.82); }
+  #fwdBtn{ left:59px; top:0; } #bwdBtn{ left:59px; bottom:0; }
+  #tlBtn{ left:0; top:59px; } #trBtn{ right:0; top:59px; }
+  /* 危险红光 */
+  #danger { position:fixed; inset:0; z-index:3; pointer-events:none; opacity:0;
+            background:radial-gradient(circle at 50% 50%, rgba(255,0,0,0) 25%, rgba(255,0,0,0.9) 100%); transition:opacity 0.15s; }
+  /* 快捷键说明 */
+  #legend { position:fixed; left:50%; bottom:8px; transform:translateX(-50%); z-index:6; pointer-events:none;
+            background:rgba(0,0,0,0.5); color:#fff; border-radius:12px; padding:6px 14px; font-size:13px;
+            line-height:1.6; text-align:center; max-width:96vw; }
+  #legend b { color:#ffd23c; }
+  #legend.hidden2 { display:none; }
+  .cbtn { position:absolute; font-family:inherit; border:none; border-radius:50%; width:74px; height:74px;
+          font-size:26px; background:rgba(255,255,255,0.82); box-shadow:0 3px 0 rgba(0,0,0,0.3); cursor:pointer; }
+  .cbtn:active { transform:translateY(2px); }
+  #shootBtn { right:20px; bottom:30px; width:100px; height:100px; font-size:40px; background:rgba(255,80,80,0.9); }
+  #jumpBtn { right:130px; bottom:40px; background:rgba(120,200,255,0.9); }
+  #runBtn  { right:36px; bottom:140px; background:rgba(255,220,90,0.9); }
+  #topBtns { position:fixed; top:36px; left:12px; z-index:8; display:flex; gap:8px; }
+  .tbtn2 { font-family:inherit; font-size:16px; padding:7px 12px; border:none; border-radius:16px; cursor:pointer;
+           background:#fff; color:#333; box-shadow:0 3px 0 rgba(0,0,0,0.25); pointer-events:auto; }
+  /* 遮罩屏 */
+  .screen { position:fixed; inset:0; z-index:20; display:none; flex-direction:column; align-items:center;
+            justify-content:center; text-align:center; color:#fff; padding:24px; }
+  .screen.show { display:flex; }
+  #start { background:radial-gradient(circle at 50% 35%, #3a2a4a, #0a0a14); }
+  #garden { background:linear-gradient(#bdefff, #d8f8c0); color:#3a5a2a; }
+  #win { background:radial-gradient(circle at 50% 40%, #ffe6a7, #ffb6d5); color:#a14b6b; }
+  #dead { background:radial-gradient(circle at 50% 40%, #6a1414, #100000); }
+  #pause { background:rgba(0,0,0,0.85); }
+  h1 { font-size:46px; margin:6px; text-shadow:2px 2px 0 rgba(0,0,0,0.3); }
+  .narr { font-size:24px; max-width:680px; line-height:1.5; margin:10px 0 16px; }
+  .btn { font-family:inherit; font-size:24px; padding:13px 40px; border:none; border-radius:30px;
+         background:#ffd23c; color:#b85c00; box-shadow:0 5px 0 #c98b00; cursor:pointer; margin:8px; }
+  .btn:active { transform:translateY(3px); box-shadow:0 2px 0 #c98b00; }
+  .opt { display:inline-block; font-size:34px; margin:6px; padding:10px 16px; border:3px solid #888;
+         border-radius:16px; cursor:pointer; background:rgba(255,255,255,0.1); }
+  .opt.sel { border-color:#ffd23c; background:rgba(255,210,60,0.25); }
+  .lbl { font-size:20px; color:#ffd23c; margin:14px 0 4px; }
+  /* 背包 */
+  #bag { background:rgba(10,10,20,0.92); }
+  #bagItems { display:flex; flex-wrap:wrap; gap:14px; justify-content:center; max-width:560px; }
+  .bagit { background:rgba(255,255,255,0.1); border:2px solid rgba(255,255,255,0.3); border-radius:14px;
+           padding:12px 16px; font-size:18px; min-width:120px; }
+  .bagit .be { display:block; font-size:40px; }
+</style>
+</head>
+<body>
+<canvas id="view"></canvas>
+
+<div id="scare"></div>
+<div id="danger"></div>
+<div id="weapon">🔫</div>
+<div id="vehicle">🛹</div>
+<div id="flash">💥</div>
+
+<div id="legend">
+  <b>🎮 操作：</b>移动 方向键/WASD · 转弯 ◀▶ 或 ← → · 🔫开枪 <b>F</b>/点屏幕 · ⬆️跳 <b>空格</b> · 🏃跑 <b>Shift</b><br>
+  <b>🎁 道具：</b>👟加速 · 🎭面具(怪物不追你) · ❤️回血 · 🪙金币 · 🎈打爆得金币 &nbsp;|&nbsp; ⚔️ 50🪙升级武器
+</div>
+
+<div id="hud">
+  <div class="hbox" id="coins">🪙 100</div>
+  <div class="hbox" id="healthWrap">❤️<div id="healthBar" style="width:100%"></div></div>
+  <div class="hbox" id="msg"></div>
+</div>
+
+<div id="topBtns">
+  <button class="tbtn2" id="bagBtn">🎒 背包</button>
+  <button class="tbtn2" id="upgradeBtn">⚔️ 升级武器(50🪙)</button>
+  <button class="tbtn2" id="helpBtn">❓</button>
+  <button class="tbtn2" id="pauseBtn">⏸️</button>
+</div>
+
+<div id="controls">
+  <div id="dpad">
+    <button class="cbtn dp" id="fwdBtn">▲</button>
+    <button class="cbtn dp" id="tlBtn">◀</button>
+    <button class="cbtn dp" id="trBtn">▶</button>
+    <button class="cbtn dp" id="bwdBtn">▼</button>
+  </div>
+  <button class="cbtn" id="shootBtn">🔫</button>
+  <button class="cbtn" id="jumpBtn">⬆️</button>
+  <button class="cbtn" id="runBtn">🏃</button>
+</div>
+
+<!-- 开始 -->
+<div id="start" class="screen show">
+  <h1>🏚️ 逃离密室</h1>
+  <div class="narr">在黑黑的密室里找到 🚪 出口逃出去！<br>小心追你的怪物，用 🔫 武器保护自己，<br>金币能升级武器，戴上 🎭 面具怪物就不认得你啦~</div>
+  <div class="lbl">选择密室场景</div>
+  <div id="sceneOpts">
+    <span class="opt sel" data-scene="0">🏚️ 老房子</span>
+    <span class="opt" data-scene="1">🧪 实验室</span>
+    <span class="opt" data-scene="2">🛏️ 小房间</span>
+    <span class="opt" data-scene="3">🍭 糖果屋</span>
+    <span class="opt" data-scene="4">🏃 跑酷场</span>
+  </div>
+  <div class="lbl">选择你的武器</div>
+  <div id="weaponOpts">
+    <span class="opt sel" data-wp="🔫">🔫</span>
+    <span class="opt" data-wp="🔨">🔨</span>
+    <span class="opt" data-wp="🪄">🪄</span>
+    <span class="opt" data-wp="🗡️">🗡️</span>
+  </div>
+  <button class="btn" id="startBtn">进入密室 ▶️</button>
+</div>
+
+<!-- 花园 -->
+<div id="garden" class="screen">
+  <h1>🌷 逃出来啦！</h1>
+  <div class="narr">外面是一个温馨的小花园 🌻🦋🌳<br>阳光好暖和，再也不可怕了~<br>前面有一座小房子，走进去就回家啦！</div>
+  <div style="font-size:80px;">🏡</div>
+  <button class="btn" id="gardenBtn">走进房子 🚪</button>
+</div>
+
+<!-- 通关 -->
+<div id="win" class="screen">
+  <h1>🎉 逃出来啦！</h1>
+  <div id="winEmoji" style="font-size:140px;">🎉</div>
+  <div class="narr" id="winText"></div>
+  <button class="btn" id="winBtn">再玩一次 🔁</button>
+</div>
+
+<!-- 被抓 -->
+<div id="dead" class="screen">
+  <h1>👹 被抓住了！</h1>
+  <div style="font-size:80px;">😱</div>
+  <div class="narr">怪物追上你啦……别怕，再试一次！</div>
+  <button class="btn" id="deadBtn">重新逃跑 🏃</button>
+</div>
+
+<!-- 背包 -->
+<div id="bag" class="screen">
+  <h1>🎒 背包</h1>
+  <div id="bagItems"></div>
+  <button class="btn" id="bagClose">合上背包</button>
+</div>
+
+<!-- 暂停 -->
+<div id="pause" class="screen">
+  <h1>⏸️ 暂停</h1>
+  <button class="btn" id="resumeBtn">继续 ▶️</button>
+  <button class="btn" id="quitBtn">回到开始</button>
+</div>
+
+<script>
+/* ================= 地图 ================= */
+const MAPS = [
+  { // 老房子
+    wallTop:'#3a2a22', wallSide:'#2a1c16', floor:'#1a1410', ceil:'#0d0a08',
+    grid:[
+      "################",
+      "#P.....#......E#",
+      "#.####.#.####..#",
+      "#.#..#.#....#.##",
+      "#.#..#.####.#..#",
+      "#.#..........#.#",
+      "#.#.######.#.#.#",
+      "#...#....#.#...#",
+      "###.#.##.#.###.#",
+      "#...#.#..#...#.#",
+      "#.###.#.###.#.##",
+      "#.....#...#....#",
+      "#.###.###.####.#",
+      "#.#......#.....#",
+      "#...####...###.#",
+      "################",
+    ]},
+  { // 实验室
+    wallTop:'#26424a', wallSide:'#173036', floor:'#0e1a1d', ceil:'#070d0f',
+    grid:[
+      "################",
+      "#P...........#E#",
+      "#.#########.#..#",
+      "#.#.......#.#.##",
+      "#.#.#####.#.#..#",
+      "#.#.#...#.#.##.#",
+      "#.#.#.#.#.#....#",
+      "#.#.#.#.#.####.#",
+      "#...#.#.#....#.#",
+      "###.#.#.####.#.#",
+      "#...#.#....#.#.#",
+      "#.###.####.#.#.#",
+      "#.#........#.#.#",
+      "#.#.######.#.#.#",
+      "#..........#...#",
+      "################",
+    ]},
+  { // 小房间（不是迷宫，开阔）
+    wallTop:'#6a5276', wallSide:'#4f3d59', floor:'#2c2436', ceil:'#1b1626',
+    grid:[
+      "################",
+      "#P............E#",
+      "#..............#",
+      "#....#....#....#",
+      "#..............#",
+      "#....#....#....#",
+      "#..............#",
+      "################",
+    ]},
+  { // 糖果屋（明亮开阔）
+    wallTop:'#d68ab4', wallSide:'#b06a92', floor:'#7a4a66', ceil:'#5a3a4e',
+    grid:[
+      "################",
+      "#P...........#E#",
+      "#............#.#",
+      "#.....##.....#.#",
+      "#..............#",
+      "#..##....##....#",
+      "#..............#",
+      "################",
+    ]},
+  { // 跑酷场（跳过黑洞逃怪）
+    wallTop:'#3f6a3f', wallSide:'#2c4d2c', floor:'#1a2a1a', ceil:'#0e1a0e',
+    grid:[
+      "################",
+      "#P............E#",
+      "#..............#",
+      "#...oooo..oooo.#",
+      "#..............#",
+      "#.####....####.#",
+      "#..............#",
+      "#...oooo..oooo.#",
+      "#..............#",
+      "################",
+    ]},
+];
+
+/* ================= 状态 ================= */
+const view = document.getElementById('view');
+const ctx = view.getContext('2d');
+let RW = 480, RH = 300;          // 渲染分辨率
+view.width = RW; view.height = RH;
+
+let map, mapW, mapH;
+let player, sprites, coins, health, weaponDmg, weaponLvl, weaponEmoji='🔫', sceneIdx=0;
+let maskTimer=0, speedTimer=0, jumpY=0, jumpV=0, jumps=0, runHeld=false;
+let vehicleTimer=0, stepTimer=0, lastSafe={x:0,y:0}, airborneNow=false;
+let bag = {};
+let running=false, paused=false, elapsed=0, monstersAwake=false, bossSpawned=false;
+let heartTimer=0;
+const keys={};
+
+/* ================= 音效 ================= */
+let AC=null;
+function actx(){ if(!AC){ try{ AC=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} } return AC; }
+function beep(freq,dur,type,vol,slideTo){
+  const ac=actx(); if(!ac)return;
+  const o=ac.createOscillator(), g=ac.createGain();
+  o.type=type||'square'; o.frequency.setValueAtTime(freq, ac.currentTime);
+  if(slideTo) o.frequency.linearRampToValueAtTime(slideTo, ac.currentTime+dur);
+  g.gain.setValueAtTime(vol||0.15, ac.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.001, ac.currentTime+dur);
+  o.connect(g).connect(ac.destination); o.start(); o.stop(ac.currentTime+dur);
+}
+function noise(dur,vol,cut){
+  const ac=actx(); if(!ac)return;
+  const n=ac.createBufferSource(), b=ac.createBuffer(1, ac.sampleRate*dur, ac.sampleRate);
+  const d=b.getChannelData(0); for(let i=0;i<d.length;i++) d[i]=Math.random()*2-1;
+  n.buffer=b; const g=ac.createGain(); g.gain.setValueAtTime(vol||0.2, ac.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.001, ac.currentTime+dur);
+  const f=ac.createBiquadFilter(); f.type='lowpass'; f.frequency.value=cut||900;
+  n.connect(f).connect(g).connect(ac.destination); n.start(); n.stop(ac.currentTime+dur);
+}
+const SFX={
+  shoot:()=>{ beep(240,0.12,'square',0.18,90); noise(0.07,0.12); },
+  hurt:()=>{ beep(170,0.28,'sawtooth',0.22,60); noise(0.12,0.12,500); },
+  pick:()=>{ beep(620,0.1,'square',0.15,1000); },
+  coin:()=>{ beep(880,0.07,'square',0.15,1320); setTimeout(()=>beep(1320,0.1,'square',0.15),55); },
+  pop:()=>{ noise(0.12,0.28,1500); },
+  scare:()=>{ beep(70,0.8,'sawtooth',0.32,38); noise(0.6,0.16,400); },
+  heart:()=>{ beep(58,0.13,'sine',0.28); setTimeout(()=>beep(52,0.13,'sine',0.22),150); },
+  win:()=>{ [523,659,784,1047].forEach((f,i)=>setTimeout(()=>beep(f,0.2,'square',0.16),i*120)); },
+  boss:()=>{ beep(95,1.0,'sawtooth',0.35,46); noise(0.9,0.2,350); },
+  upgrade:()=>{ [400,600,800].forEach((f,i)=>setTimeout(()=>beep(f,0.12,'square',0.16),i*70)); },
+  step:()=>{ noise(0.05,0.09,300); },
+  vehicle:()=>{ beep(300,0.3,'sawtooth',0.16,520); },
+  fall:()=>{ beep(400,0.4,'sine',0.2,80); noise(0.2,0.12,400); },
+};
+
+/* ================= 工具 ================= */
+function tileAt(x,y){ const r=map[Math.floor(y)]; if(!r)return '#'; return r[Math.floor(x)]||'#'; }
+function isWall(x,y){ return tileAt(x,y)==='#'; }
+function isPit(x,y){ return tileAt(x,y)==='o'; }       // 黑洞，要跳过去
+
+/* ================= 关卡初始化 ================= */
+function buildLevel(){
+  const M=MAPS[sceneIdx]; map=M.grid; mapH=map.length; mapW=map[0].length;
+  // 找出生点
+  let sx=1.5, sy=1.5;
+  for(let y=0;y<mapH;y++)for(let x=0;x<mapW;x++) if(map[y][x]==='P'){sx=x+0.5;sy=y+0.5;}
+  player={x:sx,y:sy,dir:0, dx:Math.cos(0),dy:Math.sin(0), planeX:0,planeY:0.66, lastHit:0};
+  setDir(0.3);
+
+  sprites=[];
+  // 出口
+  for(let y=0;y<mapH;y++)for(let x=0;x<mapW;x++) if(map[y][x]==='E')
+    sprites.push({type:'exit', e:'🚪', x:x+0.5, y:y+0.5});
+
+  // 道具（撒在空地上）
+  const empties=[];
+  for(let y=1;y<mapH-1;y++)for(let x=1;x<mapW-1;x++) if(map[y][x]==='.' ) empties.push([x+0.5,y+0.5]);
+  shuffle(empties);
+  const items=[
+    {type:'coin',e:'🪙'},{type:'coin',e:'🪙'},{type:'coin',e:'🪙'},{type:'coin',e:'🪙'},{type:'coin',e:'🪙'},
+    {type:'speed',e:'👟'},{type:'speed',e:'👟'},
+    {type:'mask',e:'🎭'},{type:'mask',e:'🎭'},
+    {type:'health',e:'❤️'},{type:'health',e:'❤️'},
+    {type:'vehicle',e:'🛹'},                          // 载具：踩上去跑得飞快
+    {type:'balloon',e:'🎈'},{type:'balloon',e:'🎈'},{type:'balloon',e:'🎈'},
+  ];
+  items.forEach((it,i)=>{ if(empties[i+6]){ sprites.push({...it, x:empties[i+6][0], y:empties[i+6][1], bob:Math.random()*6}); } });
+
+  // 黑洞标记（跑酷场）
+  for(let y=0;y<mapH;y++)for(let x=0;x<mapW;x++) if(map[y][x]==='o')
+    sprites.push({type:'deco', e:'🕳️', x:x+0.5, y:y+0.5});
+
+  lastSafe={x:sx,y:sy};
+
+  // 怪物（远离出生点；开局休眠）
+  const monsterFaces=['👹','💀','🧟','👺','🤡'];
+  let placed=0;
+  for(let i=empties.length-1;i>=0 && placed<3;i--){
+    const [ex,ey]=empties[i];
+    if(Math.hypot(ex-sx,ey-sy)>6){ sprites.push({type:'monster', e:monsterFaces[placed%4], x:ex,y:ey, hp:30, awake:false, hit:0}); placed++; }
+  }
+
+  coins=100; health=100; weaponLvl=1; weaponDmg=10; maskTimer=0; speedTimer=0; vehicleTimer=0; bag={};
+  monstersAwake=false; bossSpawned=false; elapsed=0; jumpY=0; jumpV=0; jumps=0;
+  updateHUD();
+}
+
+function setDir(a){
+  player.dir=a; player.dx=Math.cos(a); player.dy=Math.sin(a);
+  player.planeX=-Math.sin(a)*0.66; player.planeY=Math.cos(a)*0.66;
+}
+function shuffle(a){ for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; }
+
+/* ================= 渲染 ================= */
+const zBuffer=new Float32Array(RW);
+function render(){
+  const M=MAPS[sceneIdx];
+  // 天花板 / 地板（带跳跃偏移）
+  const horizon = RH/2 + jumpY;
+  ctx.fillStyle=M.ceil; ctx.fillRect(0,0,RW,horizon);
+  ctx.fillStyle=M.floor; ctx.fillRect(0,horizon,RW,RH-horizon);
+
+  for(let x=0;x<RW;x++){
+    const camX = 2*x/RW - 1;
+    const rdx = player.dx + player.planeX*camX;
+    const rdy = player.dy + player.planeY*camX;
+    let mx=Math.floor(player.x), my=Math.floor(player.y);
+    const ddx = Math.abs(1/rdx), ddy = Math.abs(1/rdy);
+    let stepX,stepY,sideDx,sideDy;
+    if(rdx<0){stepX=-1;sideDx=(player.x-mx)*ddx;} else {stepX=1;sideDx=(mx+1-player.x)*ddx;}
+    if(rdy<0){stepY=-1;sideDy=(player.y-my)*ddy;} else {stepY=1;sideDy=(my+1-player.y)*ddy;}
+    let hit=0,side=0;
+    while(!hit){
+      if(sideDx<sideDy){sideDx+=ddx;mx+=stepX;side=0;} else {sideDy+=ddy;my+=stepY;side=1;}
+      if(map[my] && map[my][mx]==='#') hit=1;
+      if(mx<0||my<0||mx>=mapW||my>=mapH){hit=1;}
+    }
+    let dist = side===0 ? (sideDx-ddx) : (sideDy-ddy);
+    if(dist<0.01) dist=0.01;
+    zBuffer[x]=dist;
+    const lh = Math.floor(RH/dist);
+    let y0 = horizon - lh/2, y1 = horizon + lh/2;
+    if(y0<0)y0=0; if(y1>RH)y1=RH;
+    // 颜色 + 距离变暗（黑黑的恐怖感）
+    let base = side===1 ? M.wallSide : M.wallTop;
+    const fog = Math.max(0, 1 - dist/9);
+    ctx.fillStyle = shade(base, 0.25 + 0.75*fog);
+    ctx.fillRect(x, y0, 1, y1-y0);
+  }
+
+  // 精灵
+  sprites.map(s=>({s,d:(s.x-player.x)**2+(s.y-player.y)**2}))
+    .sort((a,b)=>b.d-a.d)
+    .forEach(({s})=>drawSprite(s));
+}
+function shade(hex, f){
+  const r=parseInt(hex.substr(1,2),16)*f, g=parseInt(hex.substr(3,2),16)*f, b=parseInt(hex.substr(5,2),16)*f;
+  return 'rgb('+(r|0)+','+(g|0)+','+(b|0)+')';
+}
+function drawSprite(s){
+  const sx=s.x-player.x, sy=s.y-player.y;
+  const inv=1/(player.planeX*player.dy - player.dx*player.planeY);
+  const tx=inv*(player.dy*sx - player.dx*sy);
+  const ty=inv*(-player.planeY*sx + player.planeX*sy);
+  if(ty<=0.25) return;
+  const screenX=Math.floor((RW/2)*(1+tx/ty));
+  const scary = (s.type==='monster'||s.type==='boss') && s.awake;
+  // 门和洞可以正常变大，小道具才限制大小（不要太大太吓人）
+  let size = Math.abs(RH/ty);
+  const cap = scary ? 1.5 : (s.type==='exit'||s.type==='deco' ? 1.4 : 0.5);
+  size = Math.min(size, RH*cap);
+  if(screenX<-size||screenX>RW+size) return;
+  const col=Math.max(0,Math.min(RW-1,screenX));
+  if(zBuffer[col] < ty - 0.1) return;            // 被墙挡住
+  const horizon = RH/2 + jumpY;
+  // 怪物：恐怖抖动；黑洞贴近地面
+  const bob = scary ? (Math.random()-0.5)*size*0.06
+            : (s.bob!==undefined ? Math.sin(elapsed*4 + s.bob)*size*0.04 : 0);
+  const drawY = horizon + bob + (s.type==='deco' ? size*0.55 : 0);
+  // 怪物：身后红色光晕（越近越亮）
+  if(scary){
+    const glow = Math.max(0.15, 1-ty/6);
+    const rad = ctx.createRadialGradient(screenX, drawY, 1, screenX, drawY, size*0.7);
+    rad.addColorStop(0, 'rgba(255,0,0,'+(0.8*glow)+')');
+    rad.addColorStop(1, 'rgba(255,0,0,0)');
+    ctx.fillStyle=rad;
+    ctx.beginPath(); ctx.arc(screenX, drawY, size*0.7, 0, Math.PI*2); ctx.fill();
+  }
+  ctx.font = size+'px serif';
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  const fog=Math.max(0.3, 1-ty/9);
+  ctx.globalAlpha=fog;
+  ctx.fillText(s.e, screenX, drawY);
+  ctx.globalAlpha=1;
+}
+
+/* ================= 逻辑 ================= */
+function blocked(x,y){ return isWall(x,y) || (!airborneNow && isPit(x,y)); }  // 没跳起来时，洞当墙挡住
+function tryMove(nx,ny){
+  const pad=0.18;
+  if(!blocked(nx+Math.sign(nx-player.x)*pad, player.y)) player.x=nx;
+  if(!blocked(player.x, ny+Math.sign(ny-player.y)*pad)) player.y=ny;
+}
+function update(dt){
+  elapsed+=dt;
+  // 开局安全几秒（开局不要有鬼）
+  if(!monstersAwake && elapsed>3.5){
+    monstersAwake=true; flashMsg('🩸 它……醒来了！快跑！', 1800); scarePulse(); SFX.scare();
+    sprites.forEach(s=>{ if(s.type==='monster') s.awake=true; });
+  }
+
+  // 移动（转弯更灵活，载具更快）
+  airborneNow = jumpY < -6;        // 跳在空中时才能越过洞
+  const mult=(vehicleTimer>0?2.4:1)*(speedTimer>0?1.6:1);
+  let speed=(runHeld?2.8:1.7)*mult*dt;
+  let mv=0, turn=0, strafe=0;
+  if(keys.up) mv+=1; if(keys.down) mv-=1;
+  if(keys.left) turn-=1; if(keys.right) turn+=1;
+  if(keys.q) strafe-=1; if(keys.e) strafe+=1;
+  if(turn) setDir(player.dir + turn*3.6*dt);
+  if(mv) tryMove(player.x + player.dx*mv*speed, player.y + player.dy*mv*speed);
+  if(strafe) tryMove(player.x + player.planeX*strafe*speed, player.y + player.planeY*strafe*speed);
+  const moving = mv||strafe;
+
+  // 跳跃
+  if(jumpV!==0 || jumpY<0){ jumpV+=600*dt; jumpY+=jumpV*dt; if(jumpY>=0){jumpY=0;jumpV=0;jumps=0;} }
+  const airborne = jumpY < -6;
+
+  // 脚步声（走慢、跑/载具快）
+  if(moving && !airborne){
+    stepTimer-=dt;
+    if(stepTimer<=0){ SFX.step(); stepTimer=(runHeld||vehicleTimer>0)?0.22:0.36; }
+  }
+
+  // 跑酷：黑洞要跳着过，掉下去会受伤回到安全点
+  if(isPit(player.x,player.y)){
+    if(!airborne){ health-=10; SFX.fall(); flashMsg('🕳️ 掉进洞里！要跳着过去~',1100);
+      player.x=lastSafe.x; player.y=lastSafe.y; jumpY=0; jumpV=0; updateHUD();
+      if(health<=0){ health=0; updateHUD(); endGame('dead'); return; } }
+  } else if(!airborne && !isWall(player.x,player.y)){ lastSafe={x:player.x,y:player.y}; }
+
+  if(speedTimer>0) speedTimer-=dt;
+  if(vehicleTimer>0) vehicleTimer-=dt;
+  if(maskTimer>0) maskTimer-=dt;
+  document.getElementById('vehicle').style.display = vehicleTimer>0 ? 'block' : 'none';
+
+  // 怪物追杀
+  let nearest=99;
+  sprites.forEach(s=>{
+    if((s.type==='monster'||s.type==='boss') && s.awake){
+      const dx=player.x-s.x, dy=player.y-s.y, d=Math.hypot(dx,dy);
+      if(maskTimer<=0){
+        if(d>0.4){
+          const sp=(s.type==='boss'?0.7:0.85)*dt;
+          const nx=s.x+dx/d*sp, ny=s.y+dy/d*sp;
+          if(!isWall(nx,s.y)&&!isPit(nx,s.y)) s.x=nx;
+          if(!isWall(s.x,ny)&&!isPit(s.x,ny)) s.y=ny;
+        }
+        if(d<nearest) nearest=d;
+        if(d<0.6 && elapsed-player.lastHit>0.6){
+          player.lastHit=elapsed; health-=s.type==='boss'?14:9; scarePulse(); SFX.hurt(); updateHUD();
+          if(health<=0){ health=0; updateHUD(); endGame('dead'); }
+        }
+      }
+    }
+  });
+  // 危险红光 + 心跳声（怪物越近越强）
+  const danger=document.getElementById('danger');
+  if(nearest<5 && maskTimer<=0){
+    danger.style.opacity = Math.min(1, (5-nearest)/4);
+    heartTimer-=dt;
+    if(heartTimer<=0){ SFX.heart(); heartTimer=Math.max(0.32, nearest/6); }
+  } else { danger.style.opacity=0; }
+
+  // 捡道具 / 到出口
+  for(let i=sprites.length-1;i>=0;i--){
+    const s=sprites[i];
+    if(s.type==='monster'||s.type==='boss'||s.type==='deco') continue;
+    if(Math.hypot(s.x-player.x,s.y-player.y)<0.5){
+      if(s.type==='coin'){ coins+=10; bagAdd('🪙 金币'); SFX.coin(); sprites.splice(i,1); }
+      else if(s.type==='speed'){ speedTimer=6; bagAdd('👟 加速鞋'); flashMsg('👟 加速！',900); SFX.pick(); sprites.splice(i,1); }
+      else if(s.type==='vehicle'){ vehicleTimer=14; bagAdd('🛹 滑板车'); flashMsg('🛹 上车！跑得飞快！',1500); SFX.vehicle(); sprites.splice(i,1); }
+      else if(s.type==='mask'){ maskTimer=10; bagAdd('🎭 怪物面具'); flashMsg('🎭 戴上面具，怪物以为你是同伴！',1500); SFX.pick(); sprites.splice(i,1); }
+      else if(s.type==='health'){ health=Math.min(100,health+30); bagAdd('❤️ 爱心'); flashMsg('❤️ 回血！',900); SFX.pick(); sprites.splice(i,1); }
+      else if(s.type==='balloon'){ /* 气球要打爆，不自动捡 */ }
+      else if(s.type==='exit'){ reachExit(); return; }
+      updateHUD();
+    }
+  }
+}
+
+function reachExit(){
+  if(!bossSpawned){
+    // 出口出现 Boss 阿飘，要先打败它
+    bossSpawned=true;
+    const ex=sprites.find(s=>s.type==='exit');
+    sprites.push({type:'boss', e:'👻', x:ex.x, y:ex.y-0.01, hp:120, awake:true, hit:0, bob:0});
+    flashMsg('👻 阿飘挡住了出口！打败它才能逃出去！',2200); scarePulse(); SFX.boss();
+    return;
+  }
+  if(sprites.some(s=>s.type==='boss')) { flashMsg('先打败阿飘👻！',1200); return; }
+  running=false; SFX.win(); document.getElementById('danger').style.opacity=0;
+  const memes=['🎉','😎','🥳','🤩','🦄','🏆','😺','🌟','🍦','🤙','🐧','💃'];
+  document.getElementById('winEmoji').textContent = memes[Math.floor(Math.random()*memes.length)];
+  document.getElementById('winText').innerHTML = '你逃出来啦！<br>🪙 金币：'+coins+' · ⚔️ 武器 '+weaponLvl+' 级';
+  show('win');
+}
+
+/* 射击 */
+function shoot(){
+  if(!running||paused) return;
+  SFX.shoot();
+  const w=document.getElementById('weapon'); w.classList.add('fire'); setTimeout(()=>w.classList.remove('fire'),120);
+  const fl=document.getElementById('flash'); fl.style.display='block'; setTimeout(()=>fl.style.display='none',90);
+  // 找正前方最近的怪物 / 气球
+  let best=null, bestT=Infinity;
+  sprites.forEach(s=>{
+    if(!['monster','boss','balloon'].includes(s.type)) return;
+    const sx=s.x-player.x, sy=s.y-player.y;
+    const inv=1/(player.planeX*player.dy - player.dx*player.planeY);
+    const tx=inv*(player.dy*sx - player.dx*sy);
+    const ty=inv*(-player.planeY*sx + player.planeX*sy);
+    if(ty>0.3 && Math.abs(tx/ty)<0.35 && ty<bestT){ best=s; bestT=ty; }
+  });
+  if(best){
+    if(best.type==='balloon'){ coins+=15; bagAdd('🎈 打爆气球'); flashMsg('🎈 +15🪙',700); SFX.pop();
+      sprites.splice(sprites.indexOf(best),1); updateHUD(); return; }
+    best.hp-=weaponDmg; best.awake=true; SFX.pop();
+    if(best.hp<=0){
+      const wasBoss=best.type==='boss';
+      sprites.splice(sprites.indexOf(best),1);
+      coins+=wasBoss?100:30; updateHUD();
+      flashMsg(wasBoss?'🎉 打败阿飘啦！快去出口！':'💥 打倒一个怪物！',1500);
+    }
+  }
+}
+
+/* ================= HUD / 提示 ================= */
+function updateHUD(){
+  document.getElementById('coins').textContent='🪙 '+coins;
+  document.getElementById('healthBar').style.width=health+'%';
+  document.getElementById('healthBar').style.background = health>50?'#2ecc40':(health>25?'#ffa500':'#ff3b3b');
+  document.getElementById('weapon').textContent=weaponEmoji;
+}
+let msgTimer=0;
+function flashMsg(t,ms){ const m=document.getElementById('msg'); m.textContent=t; m.style.display='block'; msgTimer=ms/1000; }
+function scarePulse(){ const s=document.getElementById('scare'); s.style.background='rgba(150,0,0,0.45)'; setTimeout(()=>s.style.background='rgba(120,0,0,0)',140); }
+function bagAdd(name){ bag[name]=(bag[name]||0)+1; }
+
+/* ================= 升级 / 背包 ================= */
+document.getElementById('upgradeBtn').onclick=()=>{
+  if(!running) return;
+  if(coins>=50){ coins-=50; weaponLvl++; weaponDmg+=10; flashMsg('⚔️ 武器升到 '+weaponLvl+' 级！',1400); SFX.upgrade(); updateHUD(); }
+  else flashMsg('🪙 金币不够，去打气球赚金币！',1400);
+};
+document.getElementById('bagBtn').onclick=()=>{
+  paused=true; const box=document.getElementById('bagItems'); box.innerHTML='';
+  box.innerHTML+='<div class="bagit"><span class="be">⚔️</span>武器 '+weaponLvl+' 级<br>伤害 '+weaponDmg+'</div>';
+  box.innerHTML+='<div class="bagit"><span class="be">🪙</span>金币 '+coins+'</div>';
+  const keys=Object.keys(bag); if(!keys.length) box.innerHTML+='<div class="bagit">还没捡到东西~</div>';
+  keys.forEach(k=>{ box.innerHTML+='<div class="bagit"><span class="be">'+k.split(' ')[0]+'</span>'+k.split(' ')[1]+' ×'+bag[k]+'</div>'; });
+  document.getElementById('bag').classList.add('show');
+};
+document.getElementById('bagClose').onclick=()=>{ document.getElementById('bag').classList.remove('show'); paused=false; };
+
+/* ================= 控制 ================= */
+addEventListener('keydown',e=>{ const k=e.key.toLowerCase();
+  if(['arrowup','arrowdown','arrowleft','arrowright',' '].includes(e.key.toLowerCase())||e.key===' ')e.preventDefault();
+  if(k==='arrowup'||k==='w')keys.up=1; if(k==='arrowdown'||k==='s')keys.down=1;
+  if(k==='arrowleft'||k==='a')keys.left=1; if(k==='arrowright'||k==='d')keys.right=1;
+  if(k==='q')keys.q=1; if(k==='e')keys.e=1; if(k==='shift')runHeld=true;
+  if(k===' ')doJump(); if(k==='f')shoot();
+});
+addEventListener('keyup',e=>{ const k=e.key.toLowerCase();
+  if(k==='arrowup'||k==='w')keys.up=0; if(k==='arrowdown'||k==='s')keys.down=0;
+  if(k==='arrowleft'||k==='a')keys.left=0; if(k==='arrowright'||k==='d')keys.right=0;
+  if(k==='q')keys.q=0; if(k==='e')keys.e=0; if(k==='shift')runHeld=false;
+});
+function doJump(){ if(jumps<10){ jumpV=-260; jumps++; } }  // 十连跳
+view.addEventListener('pointerdown',shoot);
+document.getElementById('shootBtn').addEventListener('pointerdown',e=>{e.preventDefault();shoot();});
+document.getElementById('jumpBtn').addEventListener('pointerdown',e=>{e.preventDefault();doJump();});
+const runBtn=document.getElementById('runBtn');
+runBtn.addEventListener('pointerdown',e=>{e.preventDefault();runHeld=true;});
+runBtn.addEventListener('pointerup',()=>runHeld=false);
+runBtn.addEventListener('pointerleave',()=>runHeld=false);
+
+// 方向按钮（按住就走/转）
+function holdKey(id,key){
+  const b=document.getElementById(id);
+  const on=e=>{e.preventDefault();keys[key]=1;};
+  const off=e=>{e.preventDefault();keys[key]=0;};
+  b.addEventListener('pointerdown',on);
+  b.addEventListener('pointerup',off);
+  b.addEventListener('pointerleave',off);
+  b.addEventListener('pointercancel',off);
+}
+holdKey('fwdBtn','up'); holdKey('bwdBtn','down'); holdKey('tlBtn','left'); holdKey('trBtn','right');
+
+// 快捷键说明 开/关
+document.getElementById('helpBtn').onclick=()=>document.getElementById('legend').classList.toggle('hidden2');
+
+/* ================= 主循环 ================= */
+let last=0;
+function loop(t){
+  const dt=Math.min(0.05,(t-last)/1000)||0; last=t;
+  if(running && !paused){
+    update(dt); render();
+    if(msgTimer>0){ msgTimer-=dt; if(msgTimer<=0) document.getElementById('msg').style.display='none'; }
+  }
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+
+/* ================= 屏幕切换 ================= */
+function show(id){ document.getElementById(id).classList.add('show'); }
+function hide(id){ document.getElementById(id).classList.remove('show'); }
+// 场景 / 武器选择
+document.querySelectorAll('#sceneOpts .opt').forEach(o=>o.onclick=()=>{
+  document.querySelectorAll('#sceneOpts .opt').forEach(x=>x.classList.remove('sel')); o.classList.add('sel'); sceneIdx=+o.dataset.scene;
+});
+document.querySelectorAll('#weaponOpts .opt').forEach(o=>o.onclick=()=>{
+  document.querySelectorAll('#weaponOpts .opt').forEach(x=>x.classList.remove('sel')); o.classList.add('sel'); weaponEmoji=o.dataset.wp;
+});
+function startGame(){ const ac=actx(); if(ac&&ac.state==='suspended')ac.resume();
+  buildLevel(); document.getElementById('weapon').textContent=weaponEmoji;
+  ['start','garden','win','dead','pause','bag'].forEach(hide); running=true; paused=false; flashMsg('🚪 找到出口逃出去！',1800); }
+document.getElementById('startBtn').onclick=startGame;
+document.getElementById('deadBtn').onclick=startGame;
+document.getElementById('gardenBtn').onclick=()=>{ hide('garden'); document.getElementById('winText').innerHTML='你成功逃出了密室，安全回到家！<br>🪙 金币：'+coins+' · ⚔️ 武器 '+weaponLvl+' 级<br>🎉 太勇敢啦！'; show('win'); };
+document.getElementById('winBtn').onclick=()=>{ hide('win'); show('start'); };
+document.getElementById('pauseBtn').onclick=()=>{ if(running){ paused=true; show('pause'); } };
+document.getElementById('resumeBtn').onclick=()=>{ hide('pause'); paused=false; };
+document.getElementById('quitBtn').onclick=()=>{ hide('pause'); running=false; show('start'); };
+
+function endGame(which){ running=false; show(which); }
+</script>
+</body>
+</html>

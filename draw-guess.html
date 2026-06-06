@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🎨 你画我猜</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0; height: 100%;
+    font-family: "Comic Sans MS", "PingFang SC", sans-serif;
+    background: linear-gradient(160deg, #ffe6a7, #ffd1e8 55%, #c7f0ff);
+    user-select: none; -webkit-user-select: none; overflow: hidden;
+  }
+  #app { display: flex; height: 100vh; gap: 10px; padding: 10px; }
+  /* ===== 左边：画画 ===== */
+  #left { flex: 1.7; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+  #leftHead {
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    background: #fff; border-radius: 16px; padding: 8px 12px; box-shadow: 0 3px 0 rgba(0,0,0,0.08);
+  }
+  #leftHead .who { font-size: 20px; font-weight: bold; color: #ff6f3c; }
+  .smallbtn {
+    font-family: inherit; font-size: 17px; padding: 7px 14px; border: none; border-radius: 18px;
+    cursor: pointer; box-shadow: 0 3px 0 rgba(0,0,0,0.15);
+  }
+  #peekBtn { background: #fff0b8; color: #b85c00; }
+  #clearBtn { background: #ffd6d6; color: #c62828; }
+  #peekWord { font-size: 22px; font-weight: bold; color: #2e7d32; min-width: 70px; }
+  /* 工具栏 */
+  #tools {
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    background: #fff; border-radius: 16px; padding: 8px 10px; box-shadow: 0 3px 0 rgba(0,0,0,0.08);
+  }
+  .tbtn {
+    font-family: inherit; font-size: 22px; width: 46px; height: 46px; border: 3px solid #eee;
+    border-radius: 14px; cursor: pointer; background: #fafafa;
+  }
+  .tbtn.sel { border-color: #ff9a3c; background: #fff3e0; }
+  .swatch { width: 32px; height: 32px; border-radius: 50%; border: 3px solid #fff;
+            box-shadow: 0 0 0 2px #ccc; cursor: pointer; }
+  .swatch.sel { box-shadow: 0 0 0 3px #ff6f3c; transform: scale(1.15); }
+  .sizeDot { background: #555; border-radius: 50%; cursor: pointer; }
+  .sep { width: 2px; height: 38px; background: #eee; }
+  #curColor { width: 38px; height: 38px; border-radius: 10px; border: 3px solid #fff; box-shadow: 0 0 0 2px #bbb; }
+  /* 调色圆盘 */
+  #wheelWrap { position: relative; width: 110px; height: 110px; }
+  #wheel { width: 110px; height: 110px; border-radius: 50%; cursor: crosshair;
+           box-shadow: 0 2px 6px rgba(0,0,0,0.25); touch-action: none; }
+  #handle { position: absolute; width: 16px; height: 16px; border: 3px solid #fff; border-radius: 50%;
+            box-shadow: 0 0 3px #000; transform: translate(-50%,-50%); pointer-events: none; }
+  #bright { width: 110px; }
+  .wheelCol { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+  /* 画布 */
+  #canvasWrap { flex: 1; position: relative; min-height: 0; }
+  #board {
+    width: 100%; height: 100%; background: #fff; border-radius: 18px; display: block;
+    box-shadow: 0 6px 16px rgba(0,0,0,0.18); touch-action: none; cursor: crosshair;
+  }
+  /* 选题遮罩 */
+  #pickOverlay {
+    position: absolute; inset: 0; background: rgba(255,255,255,0.96); border-radius: 18px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px;
+    z-index: 5; text-align: center;
+  }
+  #pickOverlay h2 { font-size: 28px; color: #ff6f3c; margin: 0; }
+  #pickOverlay .ps { font-size: 18px; color: #888; }
+  #pickBtns { display: flex; gap: 16px; flex-wrap: wrap; justify-content: center; }
+  .pickBtn {
+    font-family: inherit; font-size: 26px; padding: 18px 30px; border: 4px solid #cfe4ff;
+    border-radius: 20px; background: #eef6ff; color: #3c5a8a; cursor: pointer; box-shadow: 0 5px 0 rgba(0,0,0,0.12);
+  }
+  .pickBtn:active { transform: translateY(3px); }
+  .hidden { display: none !important; }
+  /* ===== 右边：猜 ===== */
+  #right {
+    flex: 1; min-width: 230px; background: #fff; border-radius: 18px; padding: 16px;
+    display: flex; flex-direction: column; gap: 14px; box-shadow: 0 6px 16px rgba(0,0,0,0.15);
+    text-align: center; overflow-y: auto;
+  }
+  #right h2 { font-size: 26px; color: #3c7bff; margin: 4px 0; }
+  #right .tip { font-size: 17px; color: #888; line-height: 1.4; }
+  #hintArea {
+    background: #f3f8ff; border-radius: 14px; padding: 10px; min-height: 90px;
+    display: flex; flex-direction: column; gap: 8px; justify-content: center;
+  }
+  .hintLine { font-size: 20px; color: #1f7aa0; }
+  .bigbtn {
+    font-family: inherit; font-size: 22px; padding: 14px; border: none; border-radius: 18px;
+    cursor: pointer; box-shadow: 0 5px 0 rgba(0,0,0,0.15);
+  }
+  #hintBtn { background: #c7f0ff; color: #1f7aa0; }
+  #ansBtn  { background: #ffe08a; color: #b85c00; }
+  #nextBtn { background: #c8f7c5; color: #2e7d32; }
+  #answerBox { font-size: 30px; font-weight: bold; color: #ff3c7b; min-height: 40px; }
+  @media (max-width: 820px) {
+    #app { flex-direction: column; height: auto; min-height: 100vh; overflow: auto; }
+    #canvasWrap { height: 52vh; }
+    #right { min-width: 0; }
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <!-- 左边：画板 -->
+  <div id="left">
+    <div id="leftHead">
+      <span class="who">🖌️ ①号 来画</span>
+      <button class="smallbtn" id="peekBtn">👀 看我的题目</button>
+      <span id="peekWord"></span>
+      <button class="smallbtn" id="clearBtn">🗑️ 清空</button>
+    </div>
+
+    <div id="tools">
+      <button class="tbtn sel" id="tBrush" title="画笔">🖌️</button>
+      <button class="tbtn" id="tEraser" title="橡皮">🧽</button>
+      <button class="tbtn" id="tRuler" title="尺子（画直线）">📏</button>
+      <div class="sep"></div>
+      <!-- 笔粗细 -->
+      <span id="sizes"></span>
+      <div class="sep"></div>
+      <!-- 常用颜色 -->
+      <span id="swatches"></span>
+      <div class="sep"></div>
+      <!-- 调色圆盘 -->
+      <div class="wheelCol">
+        <div id="wheelWrap">
+          <canvas id="wheel" width="110" height="110"></canvas>
+          <div id="handle"></div>
+        </div>
+        <input type="range" id="bright" min="20" max="100" value="100" title="明暗">
+      </div>
+      <div class="sep"></div>
+      <div id="curColor"></div>
+    </div>
+
+    <div id="canvasWrap">
+      <canvas id="board" width="1000" height="720"></canvas>
+      <!-- 选题 -->
+      <div id="pickOverlay">
+        <h2 id="pickTitle">①号，选一个来画 🎨</h2>
+        <div class="ps">（选好就开始画，别让②号看到哦~）</div>
+        <div id="pickBtns"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 右边：猜 -->
+  <div id="right">
+    <h2>🤔 ②号 来猜！</h2>
+    <div class="tip">看看左边①号画的是什么，<br>大声说出你的答案吧！</div>
+    <div id="hintArea"><div class="hintLine" style="color:#aaa;">需要帮忙就按下面的「提示」</div></div>
+    <button class="bigbtn" id="hintBtn">💡 给我一个提示</button>
+    <button class="bigbtn" id="ansBtn">🙈 实在猜不到，看答案</button>
+    <div id="answerBox"></div>
+    <button class="bigbtn" id="nextBtn">✅ 猜对啦 / 下一题 ➡️</button>
+  </div>
+</div>
+
+<script>
+/* ===== 题库 ===== */
+const WORDS = [
+  {w:'小猫',c:'动物'},{w:'小狗',c:'动物'},{w:'大象',c:'动物'},{w:'兔子',c:'动物'},
+  {w:'蝴蝶',c:'动物'},{w:'小鱼',c:'动物'},{w:'乌龟',c:'动物'},{w:'小鸟',c:'动物'},{w:'狮子',c:'动物'},
+  {w:'苹果',c:'水果'},{w:'香蕉',c:'水果'},{w:'西瓜',c:'水果'},{w:'草莓',c:'水果'},{w:'葡萄',c:'水果'},
+  {w:'太阳',c:'自然'},{w:'月亮',c:'自然'},{w:'星星',c:'自然'},{w:'彩虹',c:'自然'},
+  {w:'白云',c:'自然'},{w:'大树',c:'自然'},{w:'小花',c:'自然'},{w:'雪人',c:'自然'},
+  {w:'房子',c:'东西'},{w:'汽车',c:'东西'},{w:'雨伞',c:'东西'},{w:'气球',c:'东西'},
+  {w:'蛋糕',c:'东西'},{w:'帽子',c:'东西'},{w:'飞机',c:'东西'},{w:'小船',c:'东西'},{w:'冰淇淋',c:'东西'},
+];
+
+/* ===== 画布 ===== */
+const board = document.getElementById('board');
+const ctx = board.getContext('2d');
+ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+
+let tool = 'brush';      // brush | eraser | ruler
+let color = '#222222';
+let size = 8;
+let drawing = false, lastX = 0, lastY = 0, startX = 0, startY = 0, snapshot = null;
+
+function pos(e){
+  const r = board.getBoundingClientRect();
+  return {
+    x: (e.clientX - r.left) * board.width / r.width,
+    y: (e.clientY - r.top) * board.height / r.height,
+  };
+}
+function strokeStyleNow(){ return tool === 'eraser' ? '#ffffff' : color; }
+
+board.addEventListener('pointerdown', e=>{
+  e.preventDefault();
+  const p = pos(e); drawing = true;
+  startX = lastX = p.x; startY = lastY = p.y;
+  if (tool === 'ruler') {
+    snapshot = ctx.getImageData(0, 0, board.width, board.height);
+  } else {
+    // 点一下也画个点
+    ctx.fillStyle = strokeStyleNow();
+    ctx.beginPath(); ctx.arc(p.x, p.y, size/2, 0, Math.PI*2); ctx.fill();
+  }
+});
+board.addEventListener('pointermove', e=>{
+  if (!drawing) return;
+  e.preventDefault();
+  const p = pos(e);
+  ctx.strokeStyle = strokeStyleNow();
+  ctx.lineWidth = size;
+  if (tool === 'ruler') {
+    ctx.putImageData(snapshot, 0, 0);
+    ctx.beginPath(); ctx.moveTo(startX, startY); ctx.lineTo(p.x, p.y); ctx.stroke();
+  } else {
+    ctx.beginPath(); ctx.moveTo(lastX, lastY); ctx.lineTo(p.x, p.y); ctx.stroke();
+    lastX = p.x; lastY = p.y;
+  }
+});
+function endStroke(){ drawing = false; }
+board.addEventListener('pointerup', endStroke);
+board.addEventListener('pointerleave', endStroke);
+board.addEventListener('pointercancel', endStroke);
+
+/* ===== 工具选择 ===== */
+const tBrush=document.getElementById('tBrush'), tEraser=document.getElementById('tEraser'), tRuler=document.getElementById('tRuler');
+function selTool(t){
+  tool = t;
+  [tBrush,tEraser,tRuler].forEach(b=>b.classList.remove('sel'));
+  ({brush:tBrush,eraser:tEraser,ruler:tRuler})[t].classList.add('sel');
+}
+tBrush.onclick=()=>selTool('brush');
+tEraser.onclick=()=>selTool('eraser');
+tRuler.onclick=()=>selTool('ruler');
+
+/* ===== 笔粗细 ===== */
+const sizes = [4, 8, 16, 28];
+const sizesEl = document.getElementById('sizes');
+sizes.forEach(s=>{
+  const b = document.createElement('button');
+  b.className = 'tbtn'; b.title = '粗细';
+  const d = document.createElement('span'); d.className = 'sizeDot';
+  d.style.width = Math.min(s,26)+'px'; d.style.height = Math.min(s,26)+'px';
+  d.style.display='inline-block';
+  b.appendChild(d);
+  b.onclick = ()=>{ size = s; document.querySelectorAll('#sizes .tbtn').forEach(x=>x.classList.remove('sel')); b.classList.add('sel'); };
+  if (s===8) b.classList.add('sel');
+  sizesEl.appendChild(b);
+});
+
+/* ===== 常用颜色 ===== */
+const PRESET = ['#222222','#ffffff','#ff3b3b','#ff9a3c','#ffd23c','#5ed24f','#3cb0ff','#3c5aff','#b14cff','#ff6fae','#8a5a2b','#9aa0a6'];
+const swatchesEl = document.getElementById('swatches');
+const curColor = document.getElementById('curColor');
+function setColor(c, fromWheel){
+  color = c; curColor.style.background = c;
+  if (tool === 'eraser') selTool('brush');
+  if (!fromWheel) document.querySelectorAll('.swatch').forEach(s=>s.classList.toggle('sel', s.dataset.c===c));
+  else document.querySelectorAll('.swatch').forEach(s=>s.classList.remove('sel'));
+}
+PRESET.forEach(c=>{
+  const s = document.createElement('div');
+  s.className = 'swatch'; s.style.background = c; s.dataset.c = c;
+  s.onclick = ()=>setColor(c, false);
+  swatchesEl.appendChild(s);
+});
+
+/* ===== 调色圆盘（HSV） ===== */
+const wheel = document.getElementById('wheel');
+const wctx = wheel.getContext('2d');
+const handle = document.getElementById('handle');
+const bright = document.getElementById('bright');
+const WS = 110, WR = 55, WC = 55;
+let curH = 0, curS = 0, curV = 1;
+
+function hsv2rgb(h,s,v){
+  h=(h%360+360)%360; const c=v*s, x=c*(1-Math.abs((h/60)%2-1)), m=v-c;
+  let r,g,b;
+  if(h<60){r=c;g=x;b=0;} else if(h<120){r=x;g=c;b=0;} else if(h<180){r=0;g=c;b=x;}
+  else if(h<240){r=0;g=x;b=c;} else if(h<300){r=x;g=0;b=c;} else {r=c;g=0;b=x;}
+  const to=n=>('0'+Math.round((n+m)*255).toString(16)).slice(-2);
+  return '#'+to(r)+to(g)+to(b);
+}
+function drawWheel(){
+  const img = wctx.createImageData(WS, WS);
+  for(let y=0;y<WS;y++) for(let x=0;x<WS;x++){
+    const dx=x-WC, dy=y-WC, dist=Math.hypot(dx,dy), i=(y*WS+x)*4;
+    if(dist<=WR){
+      const h=(Math.atan2(dy,dx)*180/Math.PI+360)%360, s=dist/WR;
+      const hex=hsv2rgb(h,s,1);
+      img.data[i]=parseInt(hex.substr(1,2),16);
+      img.data[i+1]=parseInt(hex.substr(3,2),16);
+      img.data[i+2]=parseInt(hex.substr(5,2),16);
+      img.data[i+3]=255;
+    } else img.data[i+3]=0;
+  }
+  wctx.putImageData(img,0,0);
+}
+drawWheel();
+function applyWheel(){
+  const c = hsv2rgb(curH, curS, curV);
+  setColor(c, true);
+  handle.style.left = (WC + Math.cos(curH*Math.PI/180)*curS*WR) + 'px';
+  handle.style.top  = (WC + Math.sin(curH*Math.PI/180)*curS*WR) + 'px';
+}
+function wheelPick(e){
+  const r = wheel.getBoundingClientRect();
+  let dx = (e.clientX-r.left)*WS/r.width - WC;
+  let dy = (e.clientY-r.top)*WS/r.height - WC;
+  let dist = Math.hypot(dx,dy);
+  if(dist>WR){ dx*=WR/dist; dy*=WR/dist; dist=WR; }
+  curH = (Math.atan2(dy,dx)*180/Math.PI+360)%360;
+  curS = dist/WR;
+  applyWheel();
+}
+let wheelDown=false;
+wheel.addEventListener('pointerdown',e=>{e.preventDefault();wheelDown=true;wheelPick(e);});
+wheel.addEventListener('pointermove',e=>{if(wheelDown){e.preventDefault();wheelPick(e);}});
+window.addEventListener('pointerup',()=>wheelDown=false);
+bright.addEventListener('input',()=>{ curV = bright.value/100; applyWheel(); });
+applyWheel(); setColor('#222222', false);
+
+/* ===== 清空 ===== */
+document.getElementById('clearBtn').onclick = ()=>{ ctx.clearRect(0,0,board.width,board.height); };
+
+/* ===== 回合：选题 / 提示 / 看答案 ===== */
+const pickOverlay = document.getElementById('pickOverlay');
+const pickBtns = document.getElementById('pickBtns');
+const peekWord = document.getElementById('peekWord');
+const hintArea = document.getElementById('hintArea');
+const answerBox = document.getElementById('answerBox');
+let secret = null, peeking = false, hintStep = 0;
+
+function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+
+function newRound(){
+  ctx.clearRect(0,0,board.width,board.height);
+  secret = null; peeking = false; hintStep = 0;
+  peekWord.textContent = '';
+  answerBox.textContent = '';
+  hintArea.innerHTML = '<div class="hintLine" style="color:#aaa;">需要帮忙就按下面的「提示」</div>';
+  const three = shuffle(WORDS).slice(0,3);
+  pickBtns.innerHTML = '';
+  three.forEach(item=>{
+    const b = document.createElement('button');
+    b.className = 'pickBtn'; b.textContent = item.w;
+    b.onclick = ()=>{ secret = item; pickOverlay.classList.add('hidden'); };
+    pickBtns.appendChild(b);
+  });
+  pickOverlay.classList.remove('hidden');
+}
+
+// 画画的人偷看自己的题目（按住显示）
+const peekBtn = document.getElementById('peekBtn');
+function showPeek(){ if(secret){ peeking=true; peekWord.textContent = '👉 '+secret.w; } }
+function hidePeek(){ peeking=false; peekWord.textContent=''; }
+peekBtn.addEventListener('pointerdown', e=>{e.preventDefault();showPeek();});
+peekBtn.addEventListener('pointerup', hidePeek);
+peekBtn.addEventListener('pointerleave', hidePeek);
+
+// 提示
+document.getElementById('hintBtn').onclick = ()=>{
+  if(!secret) return;
+  if(hintStep===0) hintArea.innerHTML='';
+  hintStep++;
+  let line = '';
+  if(hintStep===1) line = '🔖 它是【'+secret.c+'】';
+  else if(hintStep===2) line = '🔢 一共 '+secret.w.length+' 个字';
+  else if(hintStep===3) line = '✏️ 第一个字是「'+secret.w[0]+'」';
+  else { return; }
+  const d = document.createElement('div'); d.className='hintLine'; d.textContent = line;
+  hintArea.appendChild(d);
+};
+
+// 看答案
+document.getElementById('ansBtn').onclick = ()=>{
+  if(!secret) return;
+  answerBox.textContent = '答案是：' + secret.w + ' 🎉';
+};
+
+// 下一题
+document.getElementById('nextBtn').onclick = newRound;
+
+/* 开局 */
+newRound();
+</script>
+</body>
+</html>

@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🔍 找不同</title>
+<style>
+  html, body {
+    margin: 0; padding: 0; min-height: 100%;
+    font-family: "Comic Sans MS", "PingFang SC", sans-serif;
+    background: linear-gradient(160deg, #ffe6a7 0%, #ffd1e8 50%, #c7f0ff 100%);
+    user-select: none; -webkit-user-select: none;
+    box-sizing: border-box;
+  }
+  * { box-sizing: border-box; }
+  /* 主页 */
+  #home {
+    min-height: 100vh; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; text-align: center; padding: 20px;
+  }
+  #home h1 { font-size: 46px; color: #ff6f3c; text-shadow: 2px 2px 0 #ffd9c2; margin: 0 0 6px; }
+  #home p { font-size: 22px; color: #777; margin: 4px 0 18px; }
+  .label { font-size: 22px; color: #888; margin: 10px 0 10px; }
+  .pick-row { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+  .pick {
+    font-family: inherit; font-size: 22px; cursor: pointer;
+    border: 3px solid #cfe4ff; background: #eef6ff; color: #3c5a8a;
+    border-radius: 22px; padding: 16px 22px; transition: transform 0.08s; min-width: 150px;
+  }
+  .pick:active { transform: scale(0.96); }
+  .pick.sel { background: #ffe08a; border-color: #ffb13c; color: #b85c00; box-shadow: 0 4px 0 #e0a800; }
+  .pick .ic { display: block; font-size: 40px; }
+  .pick small { display: block; font-size: 15px; color: inherit; opacity: 0.8; margin-top: 2px; }
+  .btn {
+    font-family: inherit; font-size: 26px; padding: 14px 44px; border: none;
+    border-radius: 34px; background: #ffd23c; color: #d2691e;
+    box-shadow: 0 5px 0 #e0a800; cursor: pointer; margin-top: 24px;
+  }
+  .btn:active { transform: translateY(3px); box-shadow: 0 2px 0 #e0a800; }
+  /* 游戏页 */
+  #game { display: none; min-height: 100vh; flex-direction: column; padding: 10px; }
+  #bar {
+    display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: center;
+    margin: 6px 0 10px;
+  }
+  #status {
+    font-size: 22px; font-weight: bold; color: #ff6f3c;
+    background: #fff; padding: 8px 20px; border-radius: 30px; box-shadow: 0 3px 0 rgba(0,0,0,0.08);
+  }
+  .minibtn {
+    font-family: inherit; font-size: 19px; padding: 9px 18px; border: none; border-radius: 24px;
+    cursor: pointer; box-shadow: 0 3px 0 rgba(0,0,0,0.12);
+  }
+  #hintBtn { background: #c7f0ff; color: #1f7aa0; }
+  #newBtn  { background: #c8f7c5; color: #2e7d32; }
+  #homeBtn { background: #ffd6e6; color: #c2185b; }
+  .minibtn:active { transform: translateY(2px); }
+  /* 两张图 */
+  #panels {
+    display: flex; gap: 14px; flex-wrap: wrap; justify-content: center;
+    align-items: flex-start; flex: 1;
+  }
+  .panelWrap { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .ptitle { font-size: 18px; color: #888; font-weight: bold; }
+  .panel {
+    position: relative; width: 46vw; max-width: 520px; aspect-ratio: 4 / 3;
+    border-radius: 22px; overflow: hidden; border: 5px solid #fff;
+    box-shadow: 0 8px 18px rgba(0,0,0,0.18); cursor: crosshair;
+  }
+  .item { position: absolute; transform: translate(-50%, -50%); line-height: 1; pointer-events: none; }
+  .scen { position: absolute; transform: translate(-50%, -50%); line-height: 1; opacity: 0.9; pointer-events: none; }
+  .ring {
+    position: absolute; transform: translate(-50%, -50%);
+    border: 5px solid #ff2d2d; border-radius: 50%; pointer-events: none;
+    animation: ringpop 0.4s ease-out;
+  }
+  .ring.hint { border-color: #ffae00; border-style: dashed; }
+  @keyframes ringpop { 0% { transform: translate(-50%,-50%) scale(2); opacity: 0; } 100% { transform: translate(-50%,-50%) scale(1); opacity: 1; } }
+  .miss {
+    position: absolute; transform: translate(-50%, -50%); font-size: 30px; pointer-events: none;
+    animation: missfade 0.6s ease-out forwards;
+  }
+  @keyframes missfade { 0% { opacity: 1; transform: translate(-50%,-50%) scale(0.5); } 100% { opacity: 0; transform: translate(-50%,-50%) scale(1.4); } }
+  /* 胜利横幅 */
+  #winMsg {
+    text-align: center; font-size: 30px; font-weight: bold; color: #2e7d32;
+    min-height: 40px; margin: 8px 0;
+  }
+  @media (max-width: 760px) {
+    .panel { width: 92vw; }
+  }
+  .confetti { position: fixed; font-size: 28px; z-index: 50; pointer-events: none; }
+</style>
+</head>
+<body>
+  <!-- 主页 -->
+  <div id="home">
+    <h1>🔍 找 不 同</h1>
+    <p>两张图长得一模一样？其实偷偷改了几个地方，把它们找出来！</p>
+    <div class="label">选择难度：</div>
+    <div class="pick-row" id="diffRow">
+      <button class="pick sel" data-diff="easy"><span class="ic">😊</span>简单<small>3 个不同 · 图轻松</small></button>
+      <button class="pick" data-diff="medium"><span class="ic">🤔</span>中等<small>4 个不同 · 图热闹</small></button>
+      <button class="pick" data-diff="hard"><span class="ic">🔥</span>困难<small>6 个不同 · 图超复杂</small></button>
+    </div>
+    <button class="btn" id="startBtn">开 始 玩 ▶️</button>
+  </div>
+
+  <!-- 游戏页 -->
+  <div id="game">
+    <div id="bar">
+      <button class="minibtn" id="homeBtn">🏠 难度</button>
+      <span id="status"></span>
+      <button class="minibtn" id="hintBtn">💡 提示</button>
+      <button class="minibtn" id="newBtn">🔄 换一张</button>
+    </div>
+    <div id="winMsg"></div>
+    <div id="panels">
+      <div class="panelWrap"><span class="ptitle">第 ① 张</span><div class="panel" id="panelA"></div></div>
+      <div class="panelWrap"><span class="ptitle">第 ② 张（找出不同）</span><div class="panel" id="panelB"></div></div>
+    </div>
+  </div>
+
+<script>
+/* ===== 10 个场景主题 ===== */
+const THEMES = [
+  { name:'沙滩', bg:'linear-gradient(#bdeaff 0%, #bdeaff 55%, #ffe2a8 55%, #ffd089 100%)',
+    scen:['☀️','🌊','⛱️','🏖️'], objs:['⭐','🐚','🦀','🐠','🌟','🩴','🪣','🐡','🐢','⚽','🪸','🦑'] },
+  { name:'天空', bg:'linear-gradient(#9fd9ff, #d6f3ff)',
+    scen:['🌈','☁️','☁️'], objs:['⭐','🦋','🐦','🎈','🪁','✈️','🌟','🐝','🦅','🚁','🌤️','🪂'] },
+  { name:'海底', bg:'linear-gradient(#2a8fd6, #0b4e8a)',
+    scen:['🪸','🌊','🐚'], objs:['🐟','🐠','🐡','🦈','🐙','🦑','🦀','⭐','🐢','🦞','🐬','🐳'] },
+  { name:'太空', bg:'linear-gradient(#1b1b3a, #3a2a5a)',
+    scen:['🌌','🌙'], objs:['⭐','🪐','🚀','👽','🛸','🌟','☄️','🌍','🧑‍🚀','✨','🛰️','💫'] },
+  { name:'花园', bg:'linear-gradient(#d9f6c9, #b6e89a)',
+    scen:['🌳','🏡','🌳'], objs:['🌷','🌻','🌼','🌸','🐝','🦋','🐌','🐞','🍄','🌹','🌺','🐛'] },
+  { name:'农场', bg:'linear-gradient(#cdeaff 0%, #cdeaff 50%, #d8f0a0 50%, #bfe07a 100%)',
+    scen:['🌾','🚜','🌾'], objs:['🐮','🐷','🐔','🐑','🐴','🦆','🐰','🐤','🥕','🌽','🐈','🐐'] },
+  { name:'森林', bg:'linear-gradient(#bfe6c0, #7fc98a)',
+    scen:['🌲','🌲','🍂'], objs:['🦊','🦌','🐻','🦉','🐿️','🍄','🦔','🐍','🦋','🐦','🌰','🐝'] },
+  { name:'生日派对', bg:'linear-gradient(#ffd9ec, #ffc1dd)',
+    scen:['🎉','🎊','🎈'], objs:['🎈','🎂','🍭','🧁','🍬','🎁','🎀','🍪','🍩','⭐','🍓','🍰'] },
+  { name:'雨天', bg:'linear-gradient(#aeb8c4, #cfd8e2)',
+    scen:['🌧️','☂️','💧'], objs:['☔','🌂','💧','🐸','🦆','🐌','🌈','⚡','🍄','🐛','🪱','🐜'] },
+  { name:'城市', bg:'linear-gradient(#cfe4ff 0%, #cfe4ff 55%, #d7d7d7 55%, #c2c2c2 100%)',
+    scen:['🏙️','🌆'], objs:['🚗','🚕','🚌','🚲','🚦','🏠','🌳','🚓','🛵','🚙','🏪','🚧'] },
+];
+
+const DIFF = {
+  easy:   { busy: 8,  diffs: 3, size: 46 },
+  medium: { busy: 12, diffs: 4, size: 40 },
+  hard:   { busy: 17, diffs: 6, size: 34 },
+};
+
+/* ===== 元素 ===== */
+const home = document.getElementById('home');
+const game = document.getElementById('game');
+const diffRow = document.getElementById('diffRow');
+const startBtn = document.getElementById('startBtn');
+const panelA = document.getElementById('panelA');
+const panelB = document.getElementById('panelB');
+const statusEl = document.getElementById('status');
+const winMsg = document.getElementById('winMsg');
+
+let difficulty = 'easy';
+let imageNum = 0;          // 0..9
+let scene = null;          // {items, diffs}
+let foundCount = 0;
+
+/* ===== 工具 ===== */
+function shuffle(arr){ const a=arr.slice(); for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+function pick(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+function rand(min,max){ return min + Math.random()*(max-min); }
+
+/* 给第二张图制造一个“不同” */
+function makeMutation(item, theme){
+  const types = ['hue','hue','swap','swap','remove','scale','rotate'];
+  const t = pick(types);
+  const m = { type:t };
+  if (t === 'hue') {
+    m.filter = 'hue-rotate(' + Math.floor(rand(80,300)) + 'deg) saturate(1.8)';
+  } else if (t === 'swap') {
+    let e = item.e, tries = 0;
+    while (e === item.e && tries++ < 10) e = pick(theme.objs);
+    m.emoji = e;
+  } else if (t === 'remove') {
+    m.hide = true;
+  } else if (t === 'scale') {
+    m.transform = Math.random() < 0.5 ? ' scale(0.55)' : ' scale(1.7)';
+  } else if (t === 'rotate') {
+    m.transform = Math.random() < 0.5 ? ' rotate(180deg)' : ' scaleX(-1)';
+  }
+  return m;
+}
+
+/* 生成一张场景 */
+function buildScene() {
+  const theme = THEMES[imageNum];
+  const cfg = DIFF[difficulty];
+
+  // 4x4 网格里挑格子，保证不重叠
+  const cells = [];
+  for (let r = 0; r < 4; r++)
+    for (let c = 0; c < 4; c++)
+      cells.push({ x: 9 + 21 * c + 10.5, y: 9 + 21 * r + 10.5 });
+  const chosen = shuffle(cells).slice(0, cfg.busy);
+
+  const items = chosen.map(cell => ({
+    x: cell.x + rand(-4, 4),
+    y: cell.y + rand(-4, 4),
+    e: pick(theme.objs),
+    size: cfg.size,
+  }));
+
+  // 选出不同点并制造变化
+  const idxs = shuffle(items.map((_, i) => i)).slice(0, cfg.diffs);
+  const diffs = idxs.map(i => {
+    const m = makeMutation(items[i], theme);
+    return { x: items[i].x, y: items[i].y, idx: i, mut: m, found: false };
+  });
+
+  scene = { theme, items, diffs };
+  foundCount = 0;
+  render();
+  updateStatus();
+  winMsg.textContent = '';
+}
+
+function render() {
+  const theme = scene.theme;
+  panelA.style.background = theme.bg;
+  panelB.style.background = theme.bg;
+  panelA.innerHTML = ''; panelB.innerHTML = '';
+
+  // 背景装饰（两张一样，不是不同点）
+  theme.scen.forEach((e, i) => {
+    [panelA, panelB].forEach(p => {
+      const s = document.createElement('div');
+      s.className = 'scen';
+      s.textContent = e;
+      s.style.left = (12 + i * 33) + '%';
+      s.style.top = (14 + (i % 2) * 8) + '%';
+      s.style.fontSize = '54px';
+      p.appendChild(s);
+    });
+  });
+
+  // 物品
+  scene.items.forEach((it, i) => {
+    // 第一张
+    const a = document.createElement('div');
+    a.className = 'item';
+    a.textContent = it.e;
+    a.style.left = it.x + '%'; a.style.top = it.y + '%';
+    a.style.fontSize = it.size + 'px';
+    panelA.appendChild(a);
+
+    // 第二张（可能被改过）
+    const d = scene.diffs.find(x => x.idx === i);
+    const b = document.createElement('div');
+    b.className = 'item';
+    b.textContent = (d && d.mut.emoji) ? d.mut.emoji : it.e;
+    b.style.left = it.x + '%'; b.style.top = it.y + '%';
+    b.style.fontSize = it.size + 'px';
+    let tf = 'translate(-50%, -50%)';
+    if (d && d.mut.transform) tf += d.mut.transform;
+    b.style.transform = tf;
+    if (d && d.mut.filter) b.style.filter = d.mut.filter;
+    if (d && d.mut.hide) b.style.display = 'none';
+    panelB.appendChild(b);
+  });
+
+  // 已找到的重新画圈（换张时清空，无需）
+}
+
+function updateStatus() {
+  statusEl.textContent = '🖼️ 第 ' + (imageNum + 1) + '/10 张 · ' + scene.theme.name +
+    ' · 找到 ' + foundCount + '/' + scene.diffs.length;
+}
+
+/* 在两张图同一位置画圈 */
+function drawRing(d, isHint) {
+  [panelA, panelB].forEach(p => {
+    const sz = (DIFF[difficulty].size * 1.7);
+    const r = document.createElement('div');
+    r.className = 'ring' + (isHint ? ' hint' : '');
+    r.style.left = d.x + '%'; r.style.top = d.y + '%';
+    r.style.width = sz + 'px'; r.style.height = sz + 'px';
+    p.appendChild(r);
+  });
+}
+
+function showMiss(panel, xpc, ypc) {
+  const m = document.createElement('div');
+  m.className = 'miss'; m.textContent = '❌';
+  m.style.left = xpc + '%'; m.style.top = ypc + '%';
+  panel.appendChild(m);
+  setTimeout(() => m.remove(), 600);
+}
+
+function handleClick(panel, ev) {
+  const rect = panel.getBoundingClientRect();
+  const xpc = (ev.clientX - rect.left) / rect.width * 100;
+  const ypc = (ev.clientY - rect.top) / rect.height * 100;
+
+  let best = null, bestDist = Infinity;
+  scene.diffs.forEach(d => {
+    if (d.found) return;
+    const dx = (xpc - d.x) / 100 * rect.width;
+    const dy = (ypc - d.y) / 100 * rect.height;
+    const dist = Math.hypot(dx, dy);
+    if (dist < bestDist) { bestDist = dist; best = d; }
+  });
+
+  const threshold = Math.max(42, DIFF[difficulty].size * 1.05);
+  if (best && bestDist < threshold) {
+    best.found = true;
+    foundCount++;
+    drawRing(best, false);
+    updateStatus();
+    confetti(8);
+    if (foundCount === scene.diffs.length) winRound();
+  } else {
+    showMiss(panel, xpc, ypc);
+  }
+}
+
+panelA.addEventListener('click', e => handleClick(panelA, e));
+panelB.addEventListener('click', e => handleClick(panelB, e));
+
+function winRound() {
+  winMsg.textContent = '🎉 全部找到啦！太棒了！';
+  bigConfetti();
+}
+
+/* 提示：揭示一个还没找到的 */
+document.getElementById('hintBtn').addEventListener('click', () => {
+  const left = scene.diffs.find(d => !d.found);
+  if (!left) return;
+  left.found = true;
+  foundCount++;
+  drawRing(left, true);
+  updateStatus();
+  if (foundCount === scene.diffs.length) winRound();
+});
+
+/* 换一张 */
+document.getElementById('newBtn').addEventListener('click', () => {
+  imageNum = (imageNum + 1) % THEMES.length;
+  buildScene();
+});
+
+/* 回首页 */
+document.getElementById('homeBtn').addEventListener('click', () => {
+  game.style.display = 'none';
+  home.style.display = 'flex';
+});
+
+/* 选难度 */
+diffRow.addEventListener('click', e => {
+  const b = e.target.closest('.pick'); if (!b) return;
+  diffRow.querySelectorAll('.pick').forEach(x => x.classList.remove('sel'));
+  b.classList.add('sel'); difficulty = b.dataset.diff;
+});
+
+startBtn.addEventListener('click', () => {
+  home.style.display = 'none';
+  game.style.display = 'flex';
+  imageNum = 0;
+  buildScene();
+});
+
+/* 撒花 */
+function confetti(n) {
+  const em = ['🎉','⭐','💛','✨','🎊','🔴'];
+  n = n || 14;
+  for (let k = 0; k < n; k++) {
+    const c = document.createElement('div');
+    c.className = 'confetti';
+    c.textContent = em[Math.floor(Math.random()*em.length)];
+    c.style.left = Math.random()*100 + 'vw';
+    c.style.top = '-40px';
+    document.body.appendChild(c);
+    const dur = 1100 + Math.random()*1300;
+    const drift = (Math.random()-0.5)*180;
+    c.animate([
+      { transform:'translate(0,0) rotate(0)', opacity:1 },
+      { transform:'translate('+drift+'px,'+(window.innerHeight+80)+'px) rotate(680deg)', opacity:1 }
+    ], { duration:dur, easing:'ease-in' });
+    setTimeout(()=>c.remove(), dur);
+  }
+}
+function bigConfetti(){ confetti(50); }
+</script>
+</body>
+</html>

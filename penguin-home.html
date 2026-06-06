@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🐧 小企鹅回家记</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0; height: 100%; overflow: hidden;
+    font-family: "Comic Sans MS", "PingFang SC", sans-serif;
+    user-select: none; -webkit-user-select: none; background: #222; touch-action: none;
+  }
+  #stage { position: fixed; inset: 0; overflow: hidden; transition: background 0.4s; }
+  #roads { position: absolute; inset: 0; z-index: 1; pointer-events: none; }
+  .scen {
+    position: absolute; line-height: 1; pointer-events: none; z-index: 2;
+    filter: drop-shadow(2px 3px 3px rgba(0,0,0,0.18));
+  }
+  /* 地标门（路的尽头） */
+  .gate {
+    position: absolute; transform: translate(-50%,-50%); z-index: 3;
+    display: flex; flex-direction: column; align-items: center; text-align: center;
+    pointer-events: none;
+  }
+  .gate .glm { font-size: 70px; line-height: 1; filter: drop-shadow(2px 3px 3px rgba(0,0,0,0.25)); }
+  .gate .glbl {
+    margin-top: 2px; font-size: 17px; font-weight: bold; color: #5a3b1a;
+    background: #ffe0a3; border: 2px solid #c98b3a; border-radius: 10px; padding: 1px 8px;
+    white-space: nowrap;
+  }
+  .gate.right .glm { animation: bob 0.7s infinite alternate; }
+  /* 小企鹅 + 姐姐 */
+  #walker {
+    position: absolute; bottom: 16%; left: 16%; z-index: 6;
+    display: flex; align-items: flex-end; gap: 2px; cursor: pointer;
+  }
+  #walker .peng { font-size: 72px; animation: bob 0.5s infinite alternate; }
+  #walker .sis  { font-size: 50px; animation: bob 0.5s infinite alternate 0.2s; }
+  #walker .bag  { position: absolute; left: 0; top: 22px; font-size: 30px; transform: rotate(-12deg); z-index:1; }
+  #walker.flip { transform: translate(-50%,-50%) scaleX(-1); }
+  @keyframes bob { from { transform: translateY(0); } to { transform: translateY(-7px); } }
+  #walker.hit { animation: flash 0.4s; }
+  @keyframes flash { 0%,100%{filter:none;} 50%{filter:brightness(2) drop-shadow(0 0 12px red);} }
+  /* NPC */
+  #npc {
+    position: absolute; font-size: 66px; cursor: pointer; z-index: 5;
+    animation: bob 0.8s infinite alternate; filter: drop-shadow(2px 3px 3px rgba(0,0,0,0.2));
+  }
+  #npc::after { content:'❓'; position:absolute; top:-26px; right:-8px; font-size:26px; animation: bob 0.5s infinite alternate; }
+  #npc.asked::after { content:''; }
+  /* 移动障碍 */
+  #mob { position:absolute; font-size:54px; z-index:4; transform:translate(-50%,-50%); display:none;
+         filter: drop-shadow(2px 3px 3px rgba(0,0,0,0.2)); }
+  /* 对话气泡 */
+  #bubble {
+    position: absolute; max-width: 76%; left: 50%; top: 9%; transform: translateX(-50%);
+    background: #fff; border-radius: 22px; padding: 12px 22px; font-size: 23px; color: #444;
+    box-shadow: 0 6px 16px rgba(0,0,0,0.25); text-align: center; z-index: 9;
+    border: 4px solid #ffd23c; display: none; line-height: 1.4;
+  }
+  #bubble.show { display: block; animation: pop 0.3s; }
+  @keyframes pop { 0%{transform:translateX(-50%) scale(0.6);} 100%{transform:translateX(-50%) scale(1);} }
+  /* 顶部 HUD */
+  #hud { position: fixed; top: 8px; left: 0; right: 0; z-index: 12;
+         display: flex; align-items: center; justify-content: space-between; padding: 0 12px; }
+  .hudbtn { font-family: inherit; font-size: 18px; padding: 8px 14px; border: none; border-radius: 20px;
+            cursor: pointer; box-shadow: 0 3px 0 rgba(0,0,0,0.18); background: #fff; color: #444; }
+  .hudbtn:active { transform: translateY(2px); }
+  #stopLabel { font-size: 19px; font-weight: bold; color: #fff; text-shadow: 1px 1px 3px #000; }
+  /* 屏幕方向键 */
+  #dpad { position: fixed; right: 16px; bottom: 16px; z-index: 12; display: none;
+          grid-template-columns: repeat(3,56px); grid-template-rows: repeat(3,56px); gap: 4px; }
+  .dbtn { font-size: 26px; border: none; border-radius: 14px; background: rgba(255,255,255,0.82);
+          box-shadow: 0 3px 0 rgba(0,0,0,0.2); cursor: pointer; }
+  .dbtn:active { transform: translateY(2px); background: #ffd23c; }
+  #dUp{grid-area:1/2;} #dLeft{grid-area:2/1;} #dRight{grid-area:2/3;} #dDown{grid-area:3/2;}
+  #moveTip { position: fixed; left: 16px; bottom: 20px; z-index: 12; color: #fff; font-size: 18px;
+             text-shadow: 1px 1px 3px #000; background: rgba(0,0,0,0.3); padding: 6px 12px; border-radius: 14px; }
+  /* 大遮罩 */
+  .screen { position: fixed; inset: 0; z-index: 30; display: none;
+            flex-direction: column; align-items: center; justify-content: center; text-align: center;
+            color: #fff; padding: 24px; }
+  .screen.show { display: flex; }
+  #intro { background: radial-gradient(circle at 50% 40%, #ffd9a8, #ff9a76); }
+  #lost  { background: radial-gradient(circle at 50% 40%, #6a7bb8, #2b2b4a); }
+  #win   { background: radial-gradient(circle at 50% 40%, #ffe6a7, #ffb6d5); }
+  #mapScreen { background: rgba(20,20,40,0.92); }
+  .bigArt { font-size: 84px; margin: 6px; min-height: 96px; }
+  .narr { font-size: 28px; max-width: 760px; line-height: 1.5; margin: 10px 0 18px; }
+  .btn { font-family: inherit; font-size: 25px; padding: 13px 42px; border: none; border-radius: 32px;
+         background: #ffd23c; color: #d2691e; box-shadow: 0 5px 0 #e0a800; cursor: pointer; margin-top: 8px; }
+  .btn:active { transform: translateY(3px); box-shadow: 0 2px 0 #e0a800; }
+  h1 { font-size: 46px; margin: 6px; text-shadow: 2px 2px 0 rgba(0,0,0,0.2); }
+  #mapTitle { font-size: 34px; color: #ffd23c; margin-bottom: 4px; }
+  #mapSub { font-size: 21px; margin-bottom: 16px; }
+  #mapNodes { display: flex; flex-wrap: wrap; gap: 9px; max-width: 840px; justify-content: center; }
+  .node { background: rgba(255,255,255,0.12); border: 2px solid rgba(255,255,255,0.3); border-radius: 14px;
+          padding: 7px 10px; font-size: 16px; color: #ddd; min-width: 86px; }
+  .node .nn { display: block; font-size: 24px; }
+  .node.done { background: rgba(110,216,106,0.3); border-color: #6ed86a; color: #cfffce; }
+  .node.cur { background: #ffd23c; border-color: #fff; color: #b85c00; font-weight: bold; }
+  .confetti { position: fixed; font-size: 28px; z-index: 50; pointer-events: none; }
+</style>
+</head>
+<body>
+  <div id="hud">
+    <button class="hudbtn" id="mapBtn">🎒 看地图</button>
+    <span id="stopLabel"></span>
+    <span><button class="hudbtn" id="muteBtn">🔊</button>
+          <button class="hudbtn" id="hintBtn">💡 提示</button></span>
+  </div>
+
+  <div id="stage">
+    <svg id="roads"></svg>
+    <div id="npc"></div>
+    <div id="mob"></div>
+    <div id="walker" title="点我看地图~">
+      <span class="bag">🎒</span><span class="peng">🐧</span><span class="sis">🐧</span>
+    </div>
+    <div id="bubble"></div>
+  </div>
+
+  <div id="moveTip">👆 点一下想去的路口，小企鹅就自己走过去！（也可以拖着它走）</div>
+  <div id="dpad">
+    <button class="dbtn" id="dUp">⬆️</button>
+    <button class="dbtn" id="dLeft">⬅️</button>
+    <button class="dbtn" id="dRight">➡️</button>
+    <button class="dbtn" id="dDown">⬇️</button>
+  </div>
+
+  <!-- 开场 -->
+  <div id="intro" class="screen show">
+    <div class="bigArt" id="introArt">🏠</div>
+    <div class="narr" id="introText"></div>
+    <button class="btn" id="introBtn">继续 ▶️</button>
+  </div>
+  <!-- 迷路 -->
+  <div id="lost" class="screen">
+    <div class="bigArt">😱🐧🎒🐧</div>
+    <div class="narr">玩得太开心，天都快黑啦……<br>“咦？回家的路怎么找不到了？我们迷路了！”<br><br>用方向键，一站一站带小企鹅走回家吧！🗺️</div>
+    <button class="btn" id="lostBtn">出发找家 🚶</button>
+  </div>
+  <!-- 胜利 -->
+  <div id="win" class="screen">
+    <h1>🏠 到家啦！</h1>
+    <div class="bigArt">🐧🐧 🤗 👩</div>
+    <div class="narr">“妈妈！我们回来啦！”<br>小企鹅和姐姐安全到家，妈妈给了大大的拥抱～<br>🎉 你带他们走过了 17 站，太厉害啦！</div>
+    <button class="btn" id="winBtn">再玩一次 🔁</button>
+  </div>
+  <!-- 地图 -->
+  <div id="mapScreen" class="screen">
+    <div id="mapTitle">🗺️ 小企鹅的地图</div>
+    <div id="mapSub"></div>
+    <div id="mapNodes"></div>
+    <button class="btn" id="mapClose" style="margin-top:20px;">合上背包 🎒</button>
+  </div>
+
+<script>
+const STOPS = ['游乐场','公园','石桥','街道','商店街','河边','森林','车站','广场',
+               '田野','隧道','山坡','小巷','池塘','花店街','邮局','家'];
+
+/* ===== 15 个路口场景，路的条数 3~7 不等 ===== */
+const TRAVEL = [
+  { bg:'linear-gradient(#bfe6ff 0%,#bfe6ff 55%,#cdebab 55%,#9fd47a 100%)', scen:[['🌳',12,40],['🌳',82,38],['☀️',8,12],['🌼',30,80],['🌼',70,82]],
+    npc:'🧒', nm:'小男孩',
+    gates:[{e:'🌳',l:'小树林'},{e:'🌉',l:'石桥',ok:1},{e:'⛲',l:'喷泉'}] },
+
+  { bg:'linear-gradient(#a8dcff 0%,#a8dcff 58%,#6fae4f 58%,#4f8c3a 100%)', scen:[['🌊',50,62],['🦆',60,58],['🌥️',14,12],['🌲',86,40]],
+    npc:'🎣', nm:'钓鱼爷爷', mob:{e:'⚽',axis:'x'},
+    gates:[{e:'🏪',l:'商店街',ok:1},{e:'🌲',l:'大森林'},{e:'🏘️',l:'小村子'},{e:'🚏',l:'车站'}] },
+
+  { bg:'linear-gradient(#cfe4ff 0%,#cfe4ff 55%,#d8d8d8 55%,#bdbdbd 100%)', scen:[['🏢',16,42],['🏢',84,40],['🚦',50,70],['☁️',30,14]],
+    npc:'👮', nm:'警察叔叔',
+    gates:[{e:'🏠',l:'红屋顶'},{e:'🏪',l:'便利店'},{e:'🥖',l:'面包店',ok:1},{e:'🏢',l:'蓝高楼'},{e:'🌳',l:'大树下'}] },
+
+  { bg:'linear-gradient(#ffe6c2 0%,#ffe6c2 56%,#e0b98a 56%,#caa06a 100%)', scen:[['🏪',16,40],['🎈',30,22],['🛍️',82,42],['🍦',60,72]],
+    npc:'🧑‍🍳', nm:'面包店老板', mob:{e:'🛒',axis:'x'},
+    gates:[{e:'🌊',l:'河边'},{e:'🌳',l:'公园'},{e:'🏞️',l:'小河边',ok:1},{e:'🚉',l:'火车站'}] },
+
+  { bg:'linear-gradient(#a8e6ff 0%,#a8e6ff 56%,#8fd3a0 56%,#5fae6f 100%)', scen:[['🏞️',50,60],['🦆',58,56],['🌿',20,72],['🌿',80,70]],
+    npc:'🚣', nm:'划船哥哥',
+    gates:[{e:'🌲',l:'森林路',ok:1},{e:'⛰️',l:'爬山'},{e:'🏘️',l:'回村子'}] },
+
+  { bg:'linear-gradient(#bfe0bf 0%,#7fc98a 100%)', scen:[['🌲',12,40],['🌲',30,55],['🌲',70,52],['🌲',88,38],['🍄',50,80]],
+    npc:'🦌', nm:'小鹿', mob:{e:'🐝',axis:'y'},
+    gates:[{e:'🚏',l:'车站',ok:1},{e:'🕳️',l:'黑山洞'},{e:'🌸',l:'花丛'},{e:'🪵',l:'独木桥'},{e:'⛰️',l:'石头山'}] },
+
+  { bg:'linear-gradient(#cfe4ff 0%,#cfe4ff 58%,#c9c9c9 58%,#aeaeae 100%)', scen:[['🚏',50,58],['🕒',50,30],['🏢',14,42],['🏢',86,40]],
+    npc:'🧑‍✈️', nm:'公交司机',
+    gates:[{e:'🚌',l:'黄巴士'},{e:'🚆',l:'小火车'},{e:'⛲',l:'广场',ok:1},{e:'🚲',l:'自行车'},{e:'🚕',l:'出租车'},{e:'🛴',l:'滑板车'}] },
+
+  { bg:'linear-gradient(#bfe6ff 0%,#bfe6ff 56%,#cfcfcf 56%,#b6b6b6 100%)', scen:[['⛲',50,60],['🕊️',40,46],['🕊️',62,48],['🏛️',16,40],['🏛️',84,38]],
+    npc:'👵', nm:'喂鸽子奶奶', mob:{e:'🕊️',axis:'x'},
+    gates:[{e:'🌾',l:'金麦田',ok:1},{e:'🛝',l:'滑梯'},{e:'🎡',l:'摩天轮'},{e:'🌳',l:'树林'},{e:'🏤',l:'邮局'},{e:'🏬',l:'商场'},{e:'⛪',l:'小教堂'}] },
+
+  { bg:'linear-gradient(#bfe6ff 0%,#bfe6ff 50%,#f0d68a 50%,#e0c060 100%)', scen:[['🌾',16,60],['🌾',84,58],['🚜',50,72],['☀️',82,14]],
+    npc:'🧑‍🌾', nm:'农夫伯伯',
+    gates:[{e:'🕳️',l:'山洞隧道',ok:1},{e:'🏠',l:'谷仓'},{e:'🌽',l:'玉米地'},{e:'🐦',l:'追小鸟'}] },
+
+  { bg:'linear-gradient(#7a8aa8 0%,#3a4a6a 100%)', scen:[['⛰️',16,40],['⛰️',84,38],['🌑',50,16]],
+    npc:'🦇', nm:'小蝙蝠', mob:{e:'🪨',axis:'x'},
+    gates:[{e:'⛰️',l:'小山坡',ok:1},{e:'🌲',l:'树林'},{e:'🌊',l:'河沟'}] },
+
+  { bg:'linear-gradient(#bfe6ff 0%,#bfe6ff 48%,#9fd47a 48%,#6fae4f 100%)', scen:[['⛰️',50,46],['☁️',24,16],['🌲',14,55],['🌲',86,52]],
+    npc:'🧗', nm:'登山姐姐',
+    gates:[{e:'🏘️',l:'小巷子',ok:1},{e:'🚠',l:'缆车'},{e:'🛝',l:'滑下山'},{e:'🌳',l:'小树林'},{e:'🏞️',l:'山谷'}] },
+
+  { bg:'linear-gradient(#d8c8b8 0%,#d8c8b8 54%,#b0a090 54%,#988878 100%)', scen:[['🏘️',16,42],['🏘️',84,40],['🪟',50,32],['🧺',60,74]],
+    npc:'🐈', nm:'花猫', mob:{e:'🗑️',axis:'y'},
+    gates:[{e:'🪷',l:'池塘',ok:1},{e:'🛣️',l:'大马路'},{e:'🪜',l:'爬楼梯'},{e:'🚪',l:'小后门'}] },
+
+  { bg:'linear-gradient(#a8e6ff 0%,#a8e6ff 54%,#6fae9f 54%,#4f8c7a 100%)', scen:[['🪷',40,62],['🪷',62,66],['🐸',50,60],['🌿',16,72]],
+    npc:'🐸', nm:'青蛙', mob:{e:'🐟',axis:'x'},
+    gates:[{e:'🌷',l:'花店街',ok:1},{e:'🌊',l:'跳进水'},{e:'🏝️',l:'小岛'},{e:'🔄',l:'绕一圈'},{e:'🚣',l:'坐船'},{e:'🪨',l:'踩石头'}] },
+
+  { bg:'linear-gradient(#ffd9ec 0%,#ffd9ec 56%,#c8a0c8 56%,#b088b0 100%)', scen:[['🌷',16,60],['💐',30,40],['🌹',82,58],['🏪',60,40]],
+    npc:'👩‍🌾', nm:'花店阿姨',
+    gates:[{e:'🏤',l:'邮局',ok:1},{e:'🌹',l:'玫瑰园'},{e:'💐',l:'买花'},{e:'🍰',l:'蛋糕店'},{e:'🎀',l:'礼品店'}] },
+
+  { bg:'linear-gradient(#cfe4ff 0%,#cfe4ff 56%,#d0d0d0 56%,#b8b8b8 100%)', scen:[['📮',30,58],['🕰️',70,34],['🏤',16,40],['🏠',84,42]],
+    npc:'📬', nm:'邮递员叔叔',
+    gates:[{e:'🏠',l:'我们的家',ok:1},{e:'📭',l:'绿邮箱'},{e:'🕰️',l:'大钟楼'},{e:'🏬',l:'商场'},{e:'⛪',l:'教堂'},{e:'🏥',l:'医院'},{e:'🏫',l:'学校'}] },
+];
+
+/* ===== 状态 ===== */
+let phase='intro', travelIdx=0, asked=false, active=false, muted=false;
+let gatesData=[], startX=0, startY=0, threshold=50, pengR=40, speed=5;
+let mob=null, bumpCD=0, wrongCD=0;
+const keys={};
+let targetX=0, targetY=0, hasTarget=false, dragging=false;   // 点一下走 / 拖着走
+
+const stage=document.getElementById('stage');
+const roads=document.getElementById('roads');
+const npcEl=document.getElementById('npc');
+const walker=document.getElementById('walker');
+const bubble=document.getElementById('bubble');
+const mobEl=document.getElementById('mob');
+const stopLabel=document.getElementById('stopLabel');
+let px=0, py=0;   // 企鹅像素坐标
+
+/* ===== 语音：挑一个活泼的中文女声，像姐姐讲故事 ===== */
+let zhVoice=null;
+function pickVoice(){
+  const vs=speechSynthesis.getVoices();
+  const zh=vs.filter(v=>/zh|Chinese|中文|普通话|Mandarin/i.test(v.lang+' '+v.name));
+  // 优先挑常见的中文女声（更像动画片旁白）
+  const prefer=['Tingting','Ting-Ting','婷婷','Meijia','Mei-Jia','美佳','Sinji','Xiaoxiao','晓晓',
+                'Huihui','慧慧','Yaoyao','Yu-shu','Google 普通话','Female','女'];
+  for(const p of prefer){ const f=zh.find(v=>new RegExp(p,'i').test(v.name)); if(f){zhVoice=f;return;} }
+  zhVoice=zh[0]||null;
+}
+if('speechSynthesis' in window){pickVoice();speechSynthesis.onvoiceschanged=pickVoice;}
+function speak(t){
+  if(muted||!('speechSynthesis' in window))return;
+  speechSynthesis.cancel();
+  const u=new SpeechSynthesisUtterance(t);
+  u.lang='zh-CN'; u.rate=0.88; u.pitch=1.35; u.volume=1;   // 慢一点、音调高一点 → 更活泼可爱
+  if(zhVoice)u.voice=zhVoice;
+  speechSynthesis.speak(u);
+}
+
+/* ===== 开场 ===== */
+const INTRO=[
+  {art:'🏠 🐧🎒 🐧', txt:'小企鹅背上小书包，要带姐姐出去玩啦！'},
+  {art:'👩 👋 🐧🐧', txt:'“妈妈，我们出去玩咯！” 小企鹅跟妈妈拜拜~'},
+  {art:'🚪➡️ 🐧🎒🐧 ☀️', txt:'他们走出家门，外面阳光好棒！'},
+  {art:'🎠 🎡 🎢', txt:'哇！前面就是游乐场，好多小朋友在玩！'},
+];
+let introStep=0;
+const introArt=document.getElementById('introArt'), introText=document.getElementById('introText');
+function showIntro(){const s=INTRO[introStep];introArt.textContent=s.art;introText.textContent=s.txt;speak(s.txt);}
+document.getElementById('introBtn').addEventListener('click',()=>{
+  introStep++;
+  if(introStep<INTRO.length)showIntro();
+  else{document.getElementById('intro').classList.remove('show');startPlayground();}
+});
+
+/* ===== 游乐场 ===== */
+function startPlayground(){
+  phase='playground'; active=false;
+  stage.style.background='linear-gradient(#bfe6ff 0%,#bfe6ff 56%,#cdebab 56%,#9fd47a 100%)';
+  roads.innerHTML=''; clearScen(); clearGates(); mobEl.style.display='none';
+  drawScen([['🎡',20,38],['🎠',50,46],['🎢',80,36],['🪁',32,18],['🎈',68,20],['🧒',38,72],['👧',62,74]]);
+  npcEl.style.display='none';
+  walker.className=''; walker.style.cssText='position:absolute;bottom:18%;left:50%;transform:translateX(-50%);z-index:6;display:flex;align-items:flex-end;gap:2px;cursor:pointer;';
+  bubble.classList.remove('show'); updateStop(0);
+  clearChoiceCard();
+  const card=document.createElement('div'); card.id='pgCard';
+  card.style.cssText='position:absolute;bottom:6%;left:50%;transform:translateX(-50%);z-index:7;background:#fff;border:4px solid #cfe4ff;border-radius:18px;padding:12px 22px;font-size:22px;color:#3c5a8a;cursor:pointer;box-shadow:0 5px 0 rgba(0,0,0,0.12);text-align:center;';
+  card.innerHTML='🏠 玩好啦，回家吧！';
+  card.onclick=()=>{document.getElementById('lost').classList.add('show');speak('回家的路怎么找不到了？我们迷路啦！');};
+  stage.appendChild(card);
+  speak('小企鹅和姐姐在游乐场，跟好多小朋友玩得好开心呀！玩好了点回家吧。');
+}
+function clearChoiceCard(){const c=document.getElementById('pgCard');if(c)c.remove();}
+document.getElementById('lostBtn').addEventListener('click',()=>{
+  document.getElementById('lost').classList.remove('show');
+  clearChoiceCard(); phase='travel'; travelIdx=0; showTravel();
+});
+
+/* ===== 装饰 ===== */
+function clearScen(){stage.querySelectorAll('.scen').forEach(s=>s.remove());}
+function drawScen(list){
+  const W=stage.clientWidth,H=stage.clientHeight;
+  list.forEach(([e,xp,yp])=>{
+    const s=document.createElement('div'); s.className='scen'; s.textContent=e;
+    s.style.left=(xp/100*W)+'px'; s.style.top=(yp/100*H)+'px';
+    s.style.transform='translate(-50%,-50%)'; s.style.fontSize=(46+Math.random()*22)+'px';
+    stage.appendChild(s);
+  });
+}
+function clearGates(){stage.querySelectorAll('.gate').forEach(g=>g.remove());}
+
+function updateStop(i){stopLabel.textContent='第 '+(i+1)+'/17 站 · '+STOPS[i];}
+
+/* ===== 旅途路口 ===== */
+function showTravel(){
+  const sc=TRAVEL[travelIdx];
+  stage.style.background=sc.bg;
+  clearScen(); clearGates(); clearChoiceCard();
+  drawScen(sc.scen);
+  updateStop(travelIdx+1);
+
+  // 企鹅回到起点（底部中间）
+  walker.style.cssText='position:absolute;z-index:6;display:flex;align-items:flex-end;gap:2px;cursor:pointer;';
+  layoutScene();
+  px=startX; py=startY; placeWalker();
+
+  // NPC 放在左边
+  const W=stage.clientWidth,H=stage.clientHeight;
+  npcEl.style.display='block'; npcEl.textContent=sc.npc;
+  npcEl.style.left=(0.12*W)+'px'; npcEl.style.top=(0.55*H)+'px';
+  npcEl.style.transform='translate(-50%,-50%)';
+  npcEl.classList.remove('asked'); asked=false;
+  bubble.classList.remove('show');
+
+  // 障碍
+  if(sc.mob){ mob={e:sc.mob.e,axis:sc.mob.axis,x:W*0.5,y:H*0.45,
+                   vx:sc.mob.axis==='x'?(W*0.006):0, vy:sc.mob.axis==='y'?(H*0.008):0};
+              mobEl.textContent=sc.mob.e; mobEl.style.display='block'; }
+  else { mob=null; mobEl.style.display='none'; }
+
+  active=true;
+  speak('我们到了'+STOPS[travelIdx+1]+'啦！这里有'+sc.gates.length+'条路。你能帮小企鹅找到对的那条吗？先点一点路人问问路，再用方向键走过去吧！');
+}
+
+/* 计算起点 / 门 的像素位置（也用于 resize 重排） */
+function layoutScene(){
+  const W=stage.clientWidth,H=stage.clientHeight;
+  threshold=Math.max(46,W*0.05); pengR=Math.max(34,W*0.035); speed=Math.max(4,W*0.006);
+  startX=W*0.5; startY=H*0.84;
+  const sc=TRAVEL[travelIdx]; const gates=sc.gates; const N=gates.length;
+  gatesData=gates.map((g,i)=>{
+    const t=N===1?0.5:i/(N-1);
+    const gx=(0.10+0.80*t)*W;
+    const gy=(0.16 + 0.06*Math.cos(t*Math.PI))*H + (i%2)*8;  // 排成弧形
+    return {x:gx,y:gy,e:g.e,l:g.l,ok:!!g.ok};
+  });
+  drawGatesAndRoads();
+}
+function drawGatesAndRoads(){
+  clearGates();
+  // 路
+  roads.setAttribute('width',stage.clientWidth);
+  roads.setAttribute('height',stage.clientHeight);
+  let svg='';
+  gatesData.forEach(g=>{
+    svg+='<line x1="'+startX+'" y1="'+startY+'" x2="'+g.x+'" y2="'+g.y+'" stroke="#caa06a" stroke-width="34" stroke-linecap="round"/>';
+    svg+='<line x1="'+startX+'" y1="'+startY+'" x2="'+g.x+'" y2="'+g.y+'" stroke="#e8cda0" stroke-width="20" stroke-linecap="round"/>';
+    svg+='<line x1="'+startX+'" y1="'+startY+'" x2="'+g.x+'" y2="'+g.y+'" stroke="#fff" stroke-width="3" stroke-dasharray="10 14"/>';
+  });
+  roads.innerHTML=svg;
+  // 门
+  gatesData.forEach(g=>{
+    const el=document.createElement('div'); el.className='gate'+(g.ok?' right':'');
+    el.style.left=g.x+'px'; el.style.top=g.y+'px';
+    el.innerHTML='<span class="glm">'+g.e+'</span><span class="glbl">'+g.l+'</span>';
+    stage.appendChild(el);
+  });
+}
+function placeWalker(){ walker.style.left=px+'px'; walker.style.top=py+'px';
+  walker.style.transform='translate(-50%,-50%)'+(walker.classList.contains('flip')?' scaleX(-1)':''); }
+
+/* ===== 问路 ===== */
+npcEl.addEventListener('click',()=>{
+  if(phase!=='travel')return;
+  const sc=TRAVEL[travelIdx]; const ok=sc.gates.find(g=>g.ok);
+  const line='回家呀？走「'+ok.l+'」那条路就对啦！';
+  bubble.textContent=sc.nm+'：'+line; bubble.classList.add('show');
+  npcEl.classList.add('asked'); asked=true; speak(line);
+});
+
+/* ===== 键盘 / 方向键 ===== */
+window.addEventListener('keydown',e=>{
+  const k=e.key;
+  if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(k))e.preventDefault();
+  if(k==='ArrowUp'||k==='w')keys.up=1;
+  if(k==='ArrowDown'||k==='s')keys.down=1;
+  if(k==='ArrowLeft'||k==='a')keys.left=1;
+  if(k==='ArrowRight'||k==='d')keys.right=1;
+});
+window.addEventListener('keyup',e=>{
+  const k=e.key;
+  if(k==='ArrowUp'||k==='w')keys.up=0;
+  if(k==='ArrowDown'||k==='s')keys.down=0;
+  if(k==='ArrowLeft'||k==='a')keys.left=0;
+  if(k==='ArrowRight'||k==='d')keys.right=0;
+});
+function bindDpad(id,dir){
+  const b=document.getElementById(id);
+  const on=e=>{e.preventDefault();keys[dir]=1;}, off=e=>{e.preventDefault();keys[dir]=0;};
+  b.addEventListener('pointerdown',on); b.addEventListener('pointerup',off);
+  b.addEventListener('pointerleave',off); b.addEventListener('pointercancel',off);
+}
+bindDpad('dUp','up');bindDpad('dDown','down');bindDpad('dLeft','left');bindDpad('dRight','right');
+
+/* ===== 点一下走过去 / 拖着走 ===== */
+function stagePoint(e){ const r=stage.getBoundingClientRect(); return {x:e.clientX-r.left, y:e.clientY-r.top}; }
+stage.addEventListener('pointerdown',e=>{
+  if(phase!=='travel'||!active)return;
+  if(e.target===npcEl)return;                       // 点路人 = 问路
+  if(e.target===walker||walker.contains(e.target)){ // 抓住企鹅 = 拖着走
+    dragging=true; hasTarget=false; return;
+  }
+  const p=stagePoint(e); targetX=p.x; targetY=p.y; hasTarget=true;   // 点别处 = 走过去
+});
+window.addEventListener('pointermove',e=>{
+  if(!dragging||phase!=='travel')return;
+  const p=stagePoint(e);
+  const W=stage.clientWidth,H=stage.clientHeight;
+  px=Math.max(pengR,Math.min(W-pengR,p.x));
+  py=Math.max(pengR,Math.min(H-pengR,p.y));
+  if(p.x<px+1)walker.classList.add('flip'); else walker.classList.remove('flip');
+  placeWalker();
+});
+window.addEventListener('pointerup',()=>{dragging=false;});
+window.addEventListener('pointercancel',()=>{dragging=false;});
+
+/* ===== 主循环 ===== */
+function loop(){
+  if(active && phase==='travel'){
+    let kx=(keys.right?1:0)-(keys.left?1:0);
+    let ky=(keys.down?1:0)-(keys.up?1:0);
+    const W=stage.clientWidth,H=stage.clientHeight;
+    if(kx||ky){                                  // 用了方向键 → 取消自动走
+      hasTarget=false;
+      const len=Math.hypot(kx,ky)||1;
+      px+=kx/len*speed; py+=ky/len*speed;
+      px=Math.max(pengR,Math.min(W-pengR,px));
+      py=Math.max(pengR,Math.min(H-pengR,py));
+      if(kx<0)walker.classList.add('flip'); else if(kx>0)walker.classList.remove('flip');
+      placeWalker();
+    } else if(hasTarget && !dragging){           // 点了目的地 → 自己走过去
+      const dx=targetX-px, dy=targetY-py, dist=Math.hypot(dx,dy);
+      const step=speed*1.4;
+      if(dist>step){
+        px+=dx/dist*step; py+=dy/dist*step;
+        if(dx<0)walker.classList.add('flip'); else walker.classList.remove('flip');
+        placeWalker();
+      } else { px=targetX; py=targetY; hasTarget=false; placeWalker(); }
+    }
+    // 障碍移动
+    if(mob){
+      mob.x+=mob.vx; mob.y+=mob.vy;
+      const W=stage.clientWidth,H=stage.clientHeight;
+      if(mob.x<W*0.15||mob.x>W*0.85)mob.vx*=-1;
+      if(mob.y<H*0.2||mob.y>H*0.7)mob.vy*=-1;
+      mobEl.style.left=mob.x+'px'; mobEl.style.top=mob.y+'px';
+      if(bumpCD<=0 && Math.hypot(px-mob.x,py-mob.y)<pengR+26){
+        bumpCD=40; walker.classList.add('hit'); hasTarget=false;
+        setTimeout(()=>walker.classList.remove('hit'),400);
+        px=startX; py=startY; placeWalker();
+        bubble.textContent='哎呀，撞到啦！回到路口重新走~ 😵'; bubble.classList.add('show');
+        speak('小心障碍物！回到路口再来一次。');
+      }
+    }
+    if(bumpCD>0)bumpCD--;
+    if(wrongCD>0)wrongCD--;
+    // 到达门
+    for(const g of gatesData){
+      if(Math.hypot(px-g.x,py-g.y)<threshold){
+        if(g.ok){ reachHome(); }
+        else if(wrongCD<=0){
+          wrongCD=50;
+          bubble.textContent='这条「'+g.l+'」路不对哦~ 再问问路人吧！🤔';
+          bubble.classList.add('show'); speak('这条路不对哦，再试试。');
+          hasTarget=false; px=startX; py=startY; placeWalker();
+        }
+        break;
+      }
+    }
+  }
+  requestAnimationFrame(loop);
+}
+function reachHome(){
+  active=false;
+  bubble.textContent='小企鹅：走对啦，谢谢你！🐧'; bubble.classList.add('show');
+  speak('太棒了！我们成功啦！谢谢你帮小企鹅找到路！'); confetti(12);
+  setTimeout(()=>{
+    travelIdx++;
+    if(travelIdx>=TRAVEL.length)winGame(); else showTravel();
+  },1100);
+}
+requestAnimationFrame(loop);
+
+/* ===== 提示 ===== */
+document.getElementById('hintBtn').addEventListener('click',()=>{
+  if(phase!=='travel')return;
+  const right=stage.querySelector('.gate.right .glm');
+  if(right){right.style.transform='scale(1.5)';setTimeout(()=>right.style.transform='',1400);}
+  const ok=TRAVEL[travelIdx].gates.find(g=>g.ok); speak('走「'+ok.l+'」那条路哦！');
+});
+
+/* ===== 地图 ===== */
+const mapScreen=document.getElementById('mapScreen');
+function openMap(){
+  let cur=phase==='win'?16:(phase==='travel'?travelIdx+1:0);
+  document.getElementById('mapSub').textContent='你在第 '+(cur+1)+' 站「'+STOPS[cur]+'」，离家还有 '+(16-cur)+' 站！';
+  const box=document.getElementById('mapNodes'); box.innerHTML='';
+  STOPS.forEach((name,i)=>{
+    const n=document.createElement('div');
+    n.className='node'+(i<cur?' done':'')+(i===cur?' cur':'');
+    const icon=i===16?'🏠':(i<cur?'✅':(i===cur?'🐧':'⚪'));
+    n.innerHTML='<span class="nn">'+icon+'</span>'+(i+1)+'. '+name; box.appendChild(n);
+  });
+  mapScreen.classList.add('show');
+  speak('你在第'+(cur+1)+'站，'+STOPS[cur]+'，离家还有'+(16-cur)+'站。');
+}
+document.getElementById('mapBtn').addEventListener('click',openMap);
+document.getElementById('mapClose').addEventListener('click',()=>mapScreen.classList.remove('show'));
+
+/* ===== 静音 ===== */
+document.getElementById('muteBtn').addEventListener('click',e=>{
+  muted=!muted; e.target.textContent=muted?'🔇':'🔊'; if(muted)speechSynthesis.cancel();
+});
+
+/* ===== 胜利 ===== */
+function winGame(){phase='win';active=false;document.getElementById('win').classList.add('show');
+  speak('妈妈！我们回来啦！小企鹅和姐姐安全到家，你太厉害啦！');bigConfetti();}
+document.getElementById('winBtn').addEventListener('click',()=>{
+  document.getElementById('win').classList.remove('show');
+  introStep=0;phase='intro';document.getElementById('intro').classList.add('show');showIntro();
+});
+
+/* ===== resize 重排 ===== */
+window.addEventListener('resize',()=>{ if(phase==='travel'){layoutScene();placeWalker();
+  const W=stage.clientWidth,H=stage.clientHeight; npcEl.style.left=(0.12*W)+'px';npcEl.style.top=(0.55*H)+'px';} });
+
+/* ===== 撒花 ===== */
+function confetti(n){const em=['🎉','⭐','💛','✨','🎊','🐧'];n=n||14;
+  for(let k=0;k<n;k++){const c=document.createElement('div');c.className='confetti';
+    c.textContent=em[Math.floor(Math.random()*em.length)];c.style.left=Math.random()*100+'vw';c.style.top='-40px';
+    document.body.appendChild(c);const dur=1100+Math.random()*1300,drift=(Math.random()-0.5)*180;
+    c.animate([{transform:'translate(0,0) rotate(0)',opacity:1},{transform:'translate('+drift+'px,'+(window.innerHeight+80)+'px) rotate(680deg)',opacity:1}],{duration:dur,easing:'ease-in'});
+    setTimeout(()=>c.remove(),dur);}}
+function bigConfetti(){confetti(60);}
+
+/* ===== 启动 ===== */
+showIntro();
+</script>
+</body>
+</html>

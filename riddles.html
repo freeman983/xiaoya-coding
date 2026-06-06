@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🧠 脑筋急转弯</title>
+<style>
+  html, body {
+    margin: 0; padding: 0; min-height: 100%;
+    font-family: "Comic Sans MS", "PingFang SC", sans-serif;
+    background: linear-gradient(160deg, #ffe6a7 0%, #ffd1e8 50%, #c7f0ff 100%);
+    user-select: none; -webkit-user-select: none;
+    display: flex; align-items: center; justify-content: center;
+    min-height: 100vh; box-sizing: border-box; padding: 16px;
+  }
+  #card {
+    width: 100%; max-width: 580px;
+    background: #fff; border-radius: 32px;
+    box-shadow: 0 14px 0 rgba(0,0,0,0.08), 0 20px 40px rgba(0,0,0,0.15);
+    padding: 26px 24px 30px; text-align: center; position: relative;
+  }
+  h1 { font-size: 40px; color: #ff6f3c; margin: 4px 0 14px; text-shadow: 2px 2px 0 #ffd9c2; }
+  .label { font-size: 22px; color: #888; margin: 14px 0 8px; }
+  /* 主页选择按钮 */
+  .pick-row { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+  .pick {
+    font-family: inherit; font-size: 22px; cursor: pointer;
+    border: 3px solid #cfe4ff; background: #eef6ff; color: #3c5a8a;
+    border-radius: 22px; padding: 14px 18px; transition: transform 0.08s;
+    flex: 1; min-width: 120px;
+  }
+  .pick:active { transform: scale(0.96); }
+  .pick.sel { background: #ffe08a; border-color: #ffb13c; color: #b85c00; box-shadow: 0 4px 0 #e0a800; }
+  .pick .ic { display:block; font-size: 38px; }
+  /* 顶部进度 */
+  #top {
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 20px; color: #ff6f3c; font-weight: bold; margin-bottom: 8px;
+  }
+  #emoji { font-size: 70px; margin: 4px 0 2px; }
+  #question { font-size: 27px; color: #444; line-height: 1.4; min-height: 76px; cursor: pointer; }
+  /* 喇叭按钮 */
+  #speakBtn {
+    font-family: inherit; font-size: 20px; margin: 10px 0 2px;
+    padding: 8px 22px; border: none; border-radius: 24px;
+    background: #c7f0ff; color: #1f7aa0; cursor: pointer; box-shadow: 0 4px 0 #8fd6ee;
+  }
+  #speakBtn:active { transform: translateY(3px); box-shadow: 0 1px 0 #8fd6ee; }
+  /* 选项 */
+  #choices { display: flex; flex-direction: column; gap: 13px; margin-top: 14px; }
+  .choice {
+    font-family: inherit; font-size: 24px; color: #3c5a8a;
+    background: #eef6ff; border: 3px solid #cfe4ff; border-radius: 22px;
+    padding: 14px; cursor: pointer; transition: transform 0.08s, background 0.15s;
+  }
+  .choice:hover { transform: scale(1.03); background: #e0efff; }
+  .choice:active { transform: scale(0.98); }
+  .choice.correct { background: #c8f7c5; border-color: #6ed86a; color: #2e7d32; }
+  .choice.wrong   { background: #ffd6d6; border-color: #ff8a8a; color: #c62828; }
+  .choice:disabled { cursor: default; }
+  #feedback { margin-top: 16px; font-size: 22px; min-height: 52px; color: #ff6f3c; font-weight: bold; line-height: 1.3; }
+  .btn {
+    margin-top: 6px; font-family: inherit; font-size: 24px;
+    padding: 12px 40px; border: none; border-radius: 30px;
+    background: #ffd23c; color: #d2691e; box-shadow: 0 5px 0 #e0a800; cursor: pointer;
+  }
+  .btn:active { transform: translateY(3px); box-shadow: 0 2px 0 #e0a800; }
+  .hidden { display: none !important; }
+  #endTitle { font-size: 34px; color: #ff3c7b; margin: 8px 0; }
+  .confetti { position: fixed; font-size: 28px; z-index: 50; pointer-events: none; }
+</style>
+</head>
+<body>
+  <div id="card">
+    <!-- 主页：选主题 + 选难度 -->
+    <div id="home">
+      <h1>🧠 脑筋急转弯</h1>
+      <div class="label">选一个主题：</div>
+      <div class="pick-row" id="themeRow">
+        <button class="pick sel" data-theme="mix"><span class="ic">🎒</span>综合</button>
+        <button class="pick" data-theme="animal"><span class="ic">🐾</span>动物专题</button>
+        <button class="pick" data-theme="number"><span class="ic">🔢</span>数字专题</button>
+      </div>
+      <div class="label">选一个难度：</div>
+      <div class="pick-row" id="diffRow">
+        <button class="pick sel" data-diff="easy"><span class="ic">😊</span>简单</button>
+        <button class="pick" data-diff="hard"><span class="ic">🤔</span>难一点</button>
+      </div>
+      <button class="btn" id="startBtn" style="margin-top:22px;">开 始 玩 ▶️</button>
+      <div style="font-size:16px;color:#aaa;margin-top:12px;">🔊 题目会念给你听哦，不识字也能玩~</div>
+    </div>
+
+    <!-- 游戏区 -->
+    <div id="game" class="hidden">
+      <div id="top">
+        <span id="progress">第 1 题</span>
+        <span id="score">⭐ 0</span>
+      </div>
+      <div id="emoji">🧠</div>
+      <div id="question"></div>
+      <button id="speakBtn">🔊 再读一遍</button>
+      <div id="choices"></div>
+      <div id="feedback"></div>
+      <button class="btn hidden" id="nextBtn">下一题 ➡️</button>
+    </div>
+  </div>
+
+<script>
+/* ===== 题库：每个主题分 简单 / 难一点 ===== */
+const THEMES = {
+  mix: {
+    easy: [
+      { e:'🐧', q:'什么动物穿着黑白衣服，还不怕冷？', a:['企鹅','小猫','小狗'], correct:0, why:'是企鹅！它穿着黑白燕尾服，住在很冷的地方也不怕。' },
+      { e:'🥚', q:'什么蛋打不破，也不能吃？', a:['鸡蛋','脸蛋','鸭蛋'], correct:1, why:'是脸蛋！小朋友的脸蛋圆圆的，可不能打破呀。' },
+      { e:'🚪', q:'什么门关不上？', a:['球门','大门','房门'], correct:0, why:'是球门！足球的球门是用来进球的，永远关不上。' },
+      { e:'🌈', q:'什么东西越洗越脏？', a:['衣服','水','手'], correct:1, why:'是水！我们用水洗东西，水自己就变脏了。' },
+      { e:'🌙', q:'白天睡觉，晚上出来工作的是谁？', a:['猫头鹰','公鸡','蜜蜂'], correct:0, why:'是猫头鹰！它白天睡觉，晚上才出来活动。' },
+      { e:'🍌', q:'什么水果最爱发脾气？', a:['苹果','香蕉','西瓜'], correct:1, why:'是香蕉！因为它“焦”躁啦，哈哈！' },
+    ],
+    hard: [
+      { e:'🌞', q:'什么东西早上四条腿，中午两条，晚上三条？', a:['桌子','人','椅子'], correct:1, why:'是人！小时候爬着走，长大用两条腿，老了拄拐杖。' },
+      { e:'🐔', q:'什么东西有头没有脚？', a:['小鸟','石头','小鱼'], correct:1, why:'是石头！“石头”里有个头字，但它没有脚走不动。' },
+      { e:'🧊', q:'冰化成水要多久？答案藏在字里哦', a:['一秒','一会儿','看天气'], correct:1, why:'“一会儿”就化啦！这是个好玩的字谜。' },
+      { e:'🪞', q:'你能摸到，却拿不走的是什么？', a:['影子','镜子里的自己','糖果'], correct:1, why:'镜子里的你，摸到的是镜子，拿不走里面的人。' },
+      { e:'🕳️', q:'什么洞越挖越小？', a:['山洞','补的洞','地洞'], correct:1, why:'缝补衣服的洞，越缝越小，最后就补好了。' },
+      { e:'🦷', q:'什么人天天数钱，钱却不是自己的？', a:['银行员','小朋友','医生'], correct:0, why:'是银行的叔叔阿姨，每天数好多钱，但都是大家的。' },
+    ],
+  },
+  animal: {
+    easy: [
+      { e:'🐘', q:'什么动物的鼻子最长？', a:['大象','小猫','兔子'], correct:0, why:'是大象！它用长长的鼻子喝水、拿东西。' },
+      { e:'🦒', q:'脖子最长的动物是谁？', a:['长颈鹿','河马','青蛙'], correct:0, why:'是长颈鹿！脖子长长的，能吃到高高的树叶。' },
+      { e:'🐇', q:'耳朵长长、最爱吃萝卜的是谁？', a:['兔子','老虎','小鸟'], correct:0, why:'是小兔子！长耳朵，爱吃胡萝卜。' },
+      { e:'🐧', q:'什么动物穿着黑白衣服还不怕冷？', a:['企鹅','小猫','小狗'], correct:0, why:'是企鹅！住在很冷的地方也不怕。' },
+      { e:'🐝', q:'谁一年到头都在忙着采花蜜？', a:['蜜蜂','蝴蝶','蜗牛'], correct:0, why:'是小蜜蜂！勤劳地采蜜做蜂蜜。' },
+      { e:'🐢', q:'走得很慢，还背着房子的是谁？', a:['乌龟','兔子','马'], correct:0, why:'是乌龟！背着硬硬的壳，像背着小房子。' },
+    ],
+    hard: [
+      { e:'🐍', q:'什么动物没有脚，也能往前走？', a:['蛇','狗','鸡'], correct:0, why:'是蛇！它扭来扭去就能爬着走。' },
+      { e:'🐎', q:'什么“马”住在海里，不会跑？', a:['海马','斑马','小木马'], correct:0, why:'是海马！它生活在海里，是一种小鱼。' },
+      { e:'🦗', q:'夏天晚上，谁在草丛里唱歌？', a:['蟋蟀','蚂蚁','蜗牛'], correct:0, why:'是蟋蟀！它会发出好听的叫声。' },
+      { e:'🐳', q:'世界上最大的动物住在哪里？', a:['海里','山上','天上'], correct:0, why:'最大的是蓝鲸，它住在大海里。' },
+      { e:'🦇', q:'像小鸟会飞，却是“鼠”家的亲戚是谁？', a:['蝙蝠','麻雀','燕子'], correct:0, why:'是蝙蝠！它会飞，但不是鸟，是哺乳动物。' },
+      { e:'🐸', q:'小时候有尾巴在水里游，长大变成谁？', a:['青蛙','金鱼','螃蟹'], correct:0, why:'是青蛙！小蝌蚪长大就变成青蛙。' },
+    ],
+  },
+  number: {
+    easy: [
+      { e:'✋', q:'一只手有几个手指头？', a:['五个','三个','十个'], correct:0, why:'一只手有五个手指头，两只手就是十个！' },
+      { e:'👀', q:'我们脸上有几只眼睛？', a:['两只','一只','三只'], correct:0, why:'我们有两只眼睛，可以看清楚东西。' },
+      { e:'🍬', q:'2颗糖加3颗糖，一共几颗？', a:['5颗','4颗','6颗'], correct:0, why:'2加3等于5，一共5颗糖！' },
+      { e:'🦶', q:'一个小朋友有几只脚？', a:['两只','四只','三只'], correct:0, why:'一个人有两只脚，可以走路跑步。' },
+      { e:'🐮', q:'一头牛加一头牛，等于什么？', a:['两头牛','一对牛','很多牛'], correct:1, why:'一头加一头，就是“一对（双）牛”啦！' },
+      { e:'🕐', q:'时钟上一共有几个数字？', a:['12个','10个','20个'], correct:0, why:'时钟上有1到12，一共12个数字。' },
+    ],
+    hard: [
+      { e:'🐦', q:'树上有5只小鸟，大叫一声全飞走了，还剩几只？', a:['一只都不剩','4只','5只'], correct:0, why:'被吓到全飞走啦，一只都不剩！' },
+      { e:'🧦', q:'三双袜子，一共有几只？', a:['六只','三只','九只'], correct:0, why:'一双是2只，三双就是2加2加2，等于6只！' },
+      { e:'🧺', q:'5个苹果分给5个小朋友，每人1个，篮子里还剩1个，怎么回事？', a:['最后一个连篮子一起给','算错了','变出来的'], correct:0, why:'最后一个小朋友，连篮子一起拿走啦，里面正好有苹果！' },
+      { e:'➕', q:'1加1，在什么时候不等于2？', a:['一堆沙加一堆沙','永远等于2','加错的时候'], correct:0, why:'一堆沙加一堆沙，还是一大堆沙呀！' },
+      { e:'🔢', q:'最小的两位数是几？', a:['10','11','1'], correct:0, why:'两位数最小的是10，再小就只有一位啦。' },
+      { e:'🍰', q:'一个蛋糕切3刀，最多能分成几块？', a:['6块','3块','4块'], correct:0, why:'像切披萨一样从中间切，3刀能分成6块！' },
+    ],
+  },
+};
+
+/* ===== 元素 ===== */
+const home = document.getElementById('home');
+const game = document.getElementById('game');
+const themeRow = document.getElementById('themeRow');
+const diffRow = document.getElementById('diffRow');
+const startBtn = document.getElementById('startBtn');
+const progressEl = document.getElementById('progress');
+const scoreEl = document.getElementById('score');
+const emojiEl = document.getElementById('emoji');
+const questionEl = document.getElementById('question');
+const speakBtn = document.getElementById('speakBtn');
+const choicesEl = document.getElementById('choices');
+const feedbackEl = document.getElementById('feedback');
+const nextBtn = document.getElementById('nextBtn');
+
+let theme = 'mix', diff = 'easy';
+let queue = [], index = 0, score = 0, answered = false;
+
+/* ===== 语音：把题目念出来 ===== */
+let zhVoice = null;
+function pickVoice() {
+  const vs = speechSynthesis.getVoices();
+  zhVoice = vs.find(v => /zh|Chinese|中文|普通话/i.test(v.lang + v.name)) || null;
+}
+if ('speechSynthesis' in window) {
+  pickVoice();
+  speechSynthesis.onvoiceschanged = pickVoice;
+}
+function speak(text) {
+  if (!('speechSynthesis' in window)) return;
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = 'zh-CN'; u.rate = 0.92; u.pitch = 1.1;
+  if (zhVoice) u.voice = zhVoice;
+  speechSynthesis.speak(u);
+}
+function readQuestion() {
+  const r = queue[index];
+  let t = r.q + '。';
+  const labels = ['第一个，', '第二个，', '第三个，', '第四个，'];
+  r.a.forEach((c, i) => { t += labels[i] + c + '。'; });
+  speak(t);
+}
+
+/* ===== 选择主题 / 难度 ===== */
+themeRow.addEventListener('click', e => {
+  const b = e.target.closest('.pick'); if (!b) return;
+  themeRow.querySelectorAll('.pick').forEach(x => x.classList.remove('sel'));
+  b.classList.add('sel'); theme = b.dataset.theme;
+});
+diffRow.addEventListener('click', e => {
+  const b = e.target.closest('.pick'); if (!b) return;
+  diffRow.querySelectorAll('.pick').forEach(x => x.classList.remove('sel'));
+  b.classList.add('sel'); diff = b.dataset.diff;
+});
+
+function shuffle(arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+startBtn.addEventListener('click', () => {
+  queue = shuffle(THEMES[theme][diff]);
+  index = 0; score = 0;
+  home.classList.add('hidden');
+  game.classList.remove('hidden');
+  showQuestion();
+});
+
+function showQuestion() {
+  answered = false;
+  const r = queue[index];
+  progressEl.textContent = '第 ' + (index + 1) + ' / ' + queue.length + ' 题';
+  scoreEl.textContent = '⭐ ' + score;
+  emojiEl.textContent = r.e;
+  questionEl.textContent = r.q;
+  feedbackEl.textContent = '';
+  nextBtn.classList.add('hidden');
+  speakBtn.classList.remove('hidden');
+  choicesEl.innerHTML = '';
+  r.a.forEach((text, i) => {
+    const b = document.createElement('button');
+    b.className = 'choice';
+    b.textContent = text;
+    b.addEventListener('click', () => choose(i, b));
+    choicesEl.appendChild(b);
+  });
+  readQuestion();   // 自动念题
+}
+
+function choose(i, btn) {
+  if (answered) return;
+  const r = queue[index];
+  const buttons = choicesEl.querySelectorAll('.choice');
+  if (i === r.correct) {
+    answered = true;
+    btn.classList.add('correct');
+    buttons.forEach(b => b.disabled = true);
+    score++; scoreEl.textContent = '⭐ ' + score;
+    feedbackEl.textContent = '答对啦！🎉 ' + r.why;
+    speak('答对啦！' + r.why);
+    confetti();
+    nextBtn.textContent = (index === queue.length - 1) ? '看看成绩 🏁' : '下一题 ➡️';
+    nextBtn.classList.remove('hidden');
+  } else {
+    btn.classList.add('wrong'); btn.disabled = true;
+    feedbackEl.textContent = '哎呀，再想想看~ 🤔';
+    speak('哎呀，再想想看。');
+  }
+}
+
+speakBtn.addEventListener('click', readQuestion);
+questionEl.addEventListener('click', readQuestion);
+
+nextBtn.addEventListener('click', () => {
+  if (index >= queue.length - 1) { showEnd(); return; }
+  index++; showQuestion();
+});
+
+function showEnd() {
+  speakBtn.classList.add('hidden');
+  emojiEl.textContent = score >= queue.length ? '🏆' : (score >= queue.length / 2 ? '😄' : '🌱');
+  questionEl.innerHTML = '<div id="endTitle">闯关完成！</div>你答对了 <b>' + score + '</b> / ' + queue.length + ' 题！';
+  choicesEl.innerHTML = '';
+  progressEl.textContent = '全部答完啦';
+  let praise;
+  if (score >= queue.length) praise = '全对！你是脑筋急转弯小冠军！👑';
+  else if (score >= queue.length / 2) praise = '很棒哦，再玩一次会更厉害！💪';
+  else praise = '没关系，多玩几次就记住啦，加油！🌟';
+  feedbackEl.textContent = praise;
+  speak(praise);
+  nextBtn.textContent = '回首页再玩 🏠';
+  nextBtn.classList.remove('hidden');
+  bigConfetti();
+  nextBtn.onclick = () => {
+    nextBtn.onclick = null;
+    game.classList.add('hidden');
+    home.classList.remove('hidden');
+  };
+}
+
+function confetti(n) {
+  const em = ['🎉','⭐','💛','✨','🎊'];
+  n = n || 18;
+  for (let k = 0; k < n; k++) {
+    const c = document.createElement('div');
+    c.className = 'confetti';
+    c.textContent = em[Math.floor(Math.random()*em.length)];
+    c.style.left = Math.random()*100 + 'vw';
+    c.style.top = '-40px';
+    document.body.appendChild(c);
+    const dur = 1100 + Math.random()*1300;
+    const drift = (Math.random()-0.5)*180;
+    c.animate([
+      { transform:'translate(0,0) rotate(0)', opacity:1 },
+      { transform:'translate('+drift+'px,'+(window.innerHeight+80)+'px) rotate(680deg)', opacity:1 }
+    ], { duration:dur, easing:'ease-in' });
+    setTimeout(()=>c.remove(), dur);
+  }
+}
+function bigConfetti(){ confetti(60); }
+</script>
+</body>
+</html>

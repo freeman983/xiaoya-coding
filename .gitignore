@@ -1,0 +1,5 @@
+# macOS
+.DS_Store
+
+# Claude Code 本地文件
+.claude/

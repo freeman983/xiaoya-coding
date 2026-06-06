@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🌯 沙威玛小店</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin:0; padding:0; height:100%; overflow:hidden;
+    font-family:"Comic Sans MS","PingFang SC",sans-serif; user-select:none; -webkit-user-select:none; touch-action:manipulation; }
+  #stage { position:fixed; inset:0; transition:background 0.4s; background:linear-gradient(#ffe0b0,#ffd089); }
+  .scen { position:absolute; font-size:54px; pointer-events:none; opacity:0.9; filter:drop-shadow(2px 3px 3px rgba(0,0,0,0.15)); }
+  /* 顶部栏 */
+  #top { position:fixed; top:8px; left:0; right:0; z-index:8; display:flex; align-items:center; justify-content:space-between; padding:0 12px; }
+  .pill { background:rgba(255,255,255,0.92); border-radius:20px; padding:7px 14px; font-size:20px; font-weight:bold;
+          box-shadow:0 3px 0 rgba(0,0,0,0.12); }
+  #coins { color:#e08a00; }
+  #hearts { color:#ff5b7a; }
+  .tbtn { font-family:inherit; font-size:16px; padding:7px 12px; border:none; border-radius:18px; cursor:pointer;
+          background:#fff; color:#444; box-shadow:0 3px 0 rgba(0,0,0,0.18); }
+  .tbtn:active { transform:translateY(2px); }
+  /* 顾客 */
+  #customer { position:absolute; top:64px; left:50%; transform:translateX(-50%); z-index:5; text-align:center; width:300px; }
+  #custFace { font-size:80px; line-height:1; transition:transform 0.15s; }
+  #custFace.happy { animation:hop 0.5s; } #custFace.angry { animation:shake 0.4s; }
+  @keyframes hop { 0%,100%{transform:translateY(0);} 50%{transform:translateY(-16px);} }
+  @keyframes shake { 0%,100%{transform:translateX(0);} 25%{transform:translateX(-9px);} 75%{transform:translateX(9px);} }
+  #bubble { display:inline-block; background:#fff; border:4px solid #ffd23c; border-radius:18px; padding:8px 14px;
+            font-size:34px; box-shadow:0 4px 10px rgba(0,0,0,0.2); min-height:54px; min-width:120px; }
+  #patWrap { width:220px; height:16px; background:rgba(0,0,0,0.2); border-radius:8px; margin:8px auto 0; overflow:hidden; }
+  #patBar { height:100%; width:100%; background:#39d353; transition:width 0.1s linear, background 0.2s; }
+  #queueInfo { font-size:15px; color:#7a5a2a; margin-top:4px; }
+  /* 吉祥物 + 摊位 */
+  #mascot { position:absolute; right:8px; bottom:234px; z-index:4; width:140px; text-align:center;
+            animation:mascotBob 1.2s ease-in-out infinite; }
+  #mascot.happy { animation:mascotHop 0.5s; }
+  @keyframes mascotBob { 0%,100%{transform:translateY(0);} 50%{transform:translateY(-6px);} }
+  @keyframes mascotHop { 0%,100%{transform:translateY(0);} 40%{transform:translateY(-24px);} }
+  #mascot .figure { position:relative; width:130px; height:130px; margin:0 auto; }
+  #mascot .body { font-size:104px; line-height:130px; }
+  #mascot .hat { position:absolute; top:-24px; left:50%; transform:translateX(-50%); font-size:48px; z-index:3; }
+  #mascot .eyes { position:absolute; top:42px; left:50%; transform:translateX(-50%); display:flex; gap:12px; z-index:2; }
+  #mascot .eye { width:17px; height:20px; background:#fff; border:2px solid #4a2e12; border-radius:50%; position:relative; }
+  #mascot .eye::after { content:''; position:absolute; left:5px; top:6px; width:7px; height:7px; background:#222; border-radius:50%; }
+  #mascot .mouth { position:absolute; top:66px; left:50%; transform:translateX(-50%); width:32px; height:16px;
+                   border:3px solid #4a2e12; border-top:none; border-radius:0 0 40px 40px; background:#ff8aa0; z-index:2; transition:all 0.2s; }
+  #mascot.sad .mouth { border-radius:40px 40px 0 0; border-top:3px solid #4a2e12; border-bottom:none; top:74px; background:#caa; }
+  #mascot .arm { position:absolute; top:62px; font-size:28px; z-index:3; }
+  #mascot .arm.l { left:-8px; animation:wave 0.8s ease-in-out infinite; }
+  #mascot .arm.r { right:-8px; animation:wave 0.8s ease-in-out infinite 0.4s; }
+  @keyframes wave { 0%,100%{transform:rotate(0);} 50%{transform:rotate(22deg);} }
+  #mascot .acc { position:absolute; top:88px; left:50%; transform:translateX(-50%); font-size:26px; z-index:2; }
+  #mascot .name { font-size:13px; color:#5a3b1a; font-weight:bold; background:rgba(255,255,255,0.85);
+                  border-radius:10px; padding:1px 8px; display:inline-block; }
+  #decoBar { position:absolute; left:8px; right:8px; bottom:210px; text-align:center; font-size:30px; z-index:3; pointer-events:none; }
+  /* 盘子 */
+  #plateWrap { position:absolute; left:50%; bottom:176px; transform:translateX(-50%); z-index:6; text-align:center; width:96%; max-width:520px; }
+  #plate { background:rgba(255,255,255,0.95); border:4px dashed #e0a86a; border-radius:18px; min-height:60px;
+           display:flex; align-items:center; justify-content:center; gap:4px; flex-wrap:wrap; padding:8px; font-size:38px; }
+  #plate.shake { animation:shake 0.4s; }
+  #plate .ph { color:#bb9; font-size:18px; }
+  #plateBtns { margin-top:8px; display:flex; gap:10px; justify-content:center; }
+  .pbtn { font-family:inherit; font-size:20px; padding:10px 22px; border:none; border-radius:18px; cursor:pointer; box-shadow:0 4px 0 rgba(0,0,0,0.18); }
+  #serveBtn { background:#39d353; color:#fff; } #clearBtn { background:#ffd6d6; color:#c62828; }
+  .pbtn:active { transform:translateY(2px); }
+  /* 食材按钮 */
+  #ingredients { position:fixed; left:0; right:0; bottom:0; z-index:7; background:rgba(255,255,255,0.96);
+                 border-top:4px solid #ffd23c; padding:8px; display:grid; grid-template-columns:repeat(6,1fr); gap:6px; }
+  .ing { position:relative; font-family:inherit; border:3px solid #eee; border-radius:14px; background:#fafafa; cursor:pointer;
+         padding:6px 2px 3px; text-align:center; }
+  .ing:active { transform:scale(0.94); }
+  .ing .ie { font-size:30px; display:block; }
+  .ing .inm { font-size:12px; color:#666; }
+  .ing .fry { position:absolute; left:3px; right:3px; bottom:1px; height:5px; background:#ddd; border-radius:3px; overflow:hidden; display:none; }
+  .ing .fry i { display:block; height:100%; width:0; background:#ff8a00; }
+  .ing.frying { border-color:#ff8a00; } .ing.ready { border-color:#39d353; background:#eafff0; }
+  /* 小偷 */
+  #thief { position:fixed; bottom:120px; left:-120px; z-index:9; font-size:70px; cursor:pointer; display:none;
+           filter:drop-shadow(2px 3px 3px rgba(0,0,0,0.3)); }
+  /* 飘字 */
+  #toast { position:fixed; top:46%; left:50%; transform:translateX(-50%); z-index:11; font-size:28px; font-weight:bold;
+           color:#fff; text-shadow:2px 2px 4px #000; background:rgba(0,0,0,0.35); padding:8px 20px; border-radius:20px; display:none; text-align:center; }
+  /* 遮罩屏 */
+  .screen { position:fixed; inset:0; z-index:20; display:none; flex-direction:column; align-items:center; justify-content:center;
+            text-align:center; padding:22px; color:#5a3b1a; }
+  .screen.show { display:flex; }
+  #home { background:radial-gradient(circle at 50% 30%, #ffe6a7, #ffcaa0); }
+  #dress { background:radial-gradient(circle at 50% 30%, #d6f0ff, #bfe0ff); }
+  #over { background:radial-gradient(circle at 50% 40%, #ffe6a7, #ffd1e8); }
+  h1 { font-size:50px; margin:6px; color:#e07a2a; text-shadow:2px 2px 0 #fff; }
+  .narr { font-size:22px; max-width:620px; line-height:1.5; margin:8px 0 14px; }
+  .btn { font-family:inherit; font-size:26px; padding:14px 40px; border:none; border-radius:30px; background:#ffd23c; color:#b85c00;
+         box-shadow:0 5px 0 #e0a800; cursor:pointer; margin:8px; }
+  .btn:active { transform:translateY(3px); box-shadow:0 2px 0 #e0a800; }
+  /* 装扮 */
+  #mannequin { position:relative; width:200px; height:230px; margin:6px auto; }
+  #manBody { font-size:140px; }
+  #manHat { position:absolute; top:-6px; left:50%; transform:translateX(-50%); font-size:70px; }
+  #manAcc { position:absolute; top:90px; left:50%; transform:translateX(-50%); font-size:50px; }
+  .optrow { display:flex; gap:8px; flex-wrap:wrap; justify-content:center; margin:4px 0 10px; }
+  .opt { font-size:30px; padding:8px 12px; border:3px solid #aaa; border-radius:14px; cursor:pointer; background:rgba(255,255,255,0.6); }
+  .opt.sel { border-color:#ff9a3c; background:#fff3e0; }
+  .lbl { font-size:18px; color:#3c5a8a; }
+</style>
+</head>
+<body>
+<div id="stage"></div>
+
+<div id="top">
+  <span class="pill" id="coins">🪙 0</span>
+  <span><button class="tbtn" id="sceneBtn">🎬 场景</button>
+        <button class="tbtn" id="homeBtn">🏠 首页</button></span>
+  <span class="pill" id="hearts">❤️❤️❤️</span>
+</div>
+
+<div id="customer">
+  <div id="bubble"></div>
+  <div id="custFace">🧒</div>
+  <div id="patWrap"><div id="patBar"></div></div>
+  <div id="queueInfo"></div>
+</div>
+
+<div id="mascot">
+  <div class="figure">
+    <div class="hat"></div>
+    <div class="body">🌯</div>
+    <div class="eyes"><span class="eye"></span><span class="eye"></span></div>
+    <div class="mouth"></div>
+    <div class="acc"></div>
+    <span class="arm l">👋</span>
+    <span class="arm r">👋</span>
+  </div>
+  <div class="name">🌯 沙威玛人</div>
+</div>
+<div id="decoBar"></div>
+
+<div id="plateWrap">
+  <div id="plate"><span class="ph">把食材点上来，照着顾客要的做~</span></div>
+  <div id="plateBtns">
+    <button class="pbtn" id="serveBtn">🍽️ 上菜</button>
+    <button class="pbtn" id="clearBtn">🗑️ 倒掉</button>
+  </div>
+</div>
+
+<div id="ingredients"></div>
+
+<div id="thief">🦹</div>
+<div id="toast"></div>
+
+<!-- 首页 -->
+<div id="home" class="screen show">
+  <h1>🌯 沙威玛小店</h1>
+  <div class="narr">欢迎光临！照着顾客要的，把食材做好上菜赚钱 🪙<br>当心顾客等太久会生气，偶尔还有小偷哦！</div>
+  <button class="btn" id="startBtn">▶️ 开始营业</button>
+  <button class="btn" id="dressBtn" style="background:#9ad0ff;color:#1f5a8a;box-shadow:0 5px 0 #5a9fd6;">👕 换皮肤 / 装扮</button>
+</div>
+
+<!-- 装扮 -->
+<div id="dress" class="screen">
+  <h1>👕 装扮沙威玛</h1>
+  <div id="mannequin">
+    <div id="manHat"></div><div id="manBody">🌯</div><div id="manAcc"></div>
+  </div>
+  <div class="lbl">帽子</div>
+  <div class="optrow" id="hatRow"></div>
+  <div class="lbl">小装饰</div>
+  <div class="optrow" id="accRow"></div>
+  <button class="btn" id="createBtn" style="background:#c8f7c5;color:#2e7d32;box-shadow:0 5px 0 #6ed86a;">✨ 创造（给摊位加装饰）</button>
+  <button class="btn" id="dressBack">✅ 完成，返回</button>
+</div>
+
+<!-- 打烊 -->
+<div id="over" class="screen">
+  <h1>🌙 今天打烊啦</h1>
+  <div class="narr" id="overText"></div>
+  <button class="btn" id="overBtn">再开一天 🔁</button>
+</div>
+
+<script>
+/* ============ 数据 ============ */
+const ING = [
+  {id:'bing', e:'🫓', n:'饼'},
+  {id:'fries', e:'🍟', n:'薯条', fry:true},
+  {id:'sausage', e:'🌭', n:'热狗'},
+  {id:'cuke', e:'🥒', n:'黄瓜'},
+  {id:'carrot', e:'🥕', n:'萝卜'},
+  {id:'ketchup', e:'🍅', n:'番茄酱'},
+  {id:'salad', e:'🥗', n:'沙拉酱'},
+  {id:'bread', e:'🍞', n:'面包'},
+  {id:'cola', e:'🥤', n:'可乐'},
+  {id:'ice', e:'🧊', n:'冰块'},
+  {id:'icecream', e:'🍦', n:'雪糕'},
+  {id:'sundae', e:'🍨', n:'冰淇淋'},
+];
+const INGMAP = {}; ING.forEach(i=>INGMAP[i.id]=i);
+
+const SCENES = [
+  {n:'小商店', bg:'linear-gradient(#ffe0b0,#ffd089)', scen:[['🏪',12,16],['🪧',82,20],['🧺',70,60]]},
+  {n:'街边',   bg:'linear-gradient(#bfe6ff,#dfeffd)', scen:[['🏙️',14,14],['🌳',84,18],['🚗',20,62]]},
+  {n:'海边',   bg:'linear-gradient(#a8e6ff,#ffe6a7)', scen:[['🌊',16,60],['⛱️',80,55],['🌴',86,18]]},
+  {n:'夜市',   bg:'linear-gradient(#3a2a5a,#5a3a6a)', scen:[['🏮',14,16],['🏮',84,16],['🌙',50,12]]},
+];
+
+const HATS = ['','🎩','🧢','👑','🎓','🥳','⛑️','🍔'];
+const ACCS = ['','🕶️','🎀','🧣','⭐','❤️','🌟'];
+const DECOS = ['🪴','🎈','🏮','🧸','🖼️','🌻','🎀','🪅','🕯️','🍭'];
+
+/* ============ 状态 ============ */
+let coins=0, hearts=5, sceneIdx=0;
+let customer=null, served=0;
+let fries={state:'idle', t:0};   // idle | frying | ready(auto)
+let plate=[];
+let dress={hat:'', acc:''};
+let decos=[];
+let thief={active:false, x:-120, t:0, cd:25};
+let running=false, paused=false;
+
+/* ============ 音效 ============ */
+let AC=null;
+function actx(){ if(!AC){ try{AC=new (window.AudioContext||window.webkitAudioContext)();}catch(e){} } return AC; }
+function beep(f,d,t,v,to){ const ac=actx(); if(!ac)return; const o=ac.createOscillator(),g=ac.createGain();
+  o.type=t||'square'; o.frequency.setValueAtTime(f,ac.currentTime); if(to)o.frequency.linearRampToValueAtTime(to,ac.currentTime+d);
+  g.gain.setValueAtTime(v||0.14,ac.currentTime); g.gain.exponentialRampToValueAtTime(0.001,ac.currentTime+d);
+  o.connect(g).connect(ac.destination); o.start(); o.stop(ac.currentTime+d); }
+const SFX={
+  tap:()=>beep(440,0.06,'square',0.12,600),
+  add:()=>beep(660,0.08,'square',0.13,880),
+  serve:()=>{ [660,880,1100].forEach((f,i)=>setTimeout(()=>beep(f,0.12,'square',0.15),i*70)); },
+  coin:()=>{ beep(900,0.07,'square',0.14,1320); setTimeout(()=>beep(1320,0.1,'square',0.14),55); },
+  err:()=>beep(200,0.2,'sawtooth',0.16,120),
+  angry:()=>beep(150,0.4,'sawtooth',0.2,80),
+  fry:()=>beep(300,0.5,'sawtooth',0.08,360),
+  thief:()=>beep(120,0.5,'sawtooth',0.2,260),
+  caught:()=>{ [500,700].forEach((f,i)=>setTimeout(()=>beep(f,0.1,'square',0.15),i*80)); },
+};
+
+/* ============ 元素 ============ */
+const stage=document.getElementById('stage');
+const ingDiv=document.getElementById('ingredients');
+const plateEl=document.getElementById('plate');
+const bubble=document.getElementById('bubble');
+const custFace=document.getElementById('custFace');
+const patBar=document.getElementById('patBar');
+const queueInfo=document.getElementById('queueInfo');
+const thiefEl=document.getElementById('thief');
+const toast=document.getElementById('toast');
+
+/* ============ 食材按钮 ============ */
+ING.forEach(ing=>{
+  const b=document.createElement('button'); b.className='ing'; b.dataset.id=ing.id;
+  b.innerHTML='<span class="ie">'+ing.e+'</span><span class="inm">'+ing.n+'</span>'+(ing.fry?'<span class="fry"><i></i></span>':'');
+  b.onclick=()=>clickIng(ing);
+  ingDiv.appendChild(b);
+});
+function friesBtn(){ return ingDiv.querySelector('.ing[data-id="fries"]'); }
+
+function clickIng(ing){
+  if(!running||paused) return;
+  if(ing.fry){
+    if(fries.state==='idle'){ fries.state='frying'; fries.t=2.2; SFX.fry(); friesBtn().classList.add('frying'); friesBtn().querySelector('.fry').style.display='block'; }
+    else if(fries.state==='ready'){ addToPlate('fries'); fries.state='idle'; friesBtn().classList.remove('ready'); }
+    else { flash('🍟 薯条还在炸~'); }
+    return;
+  }
+  addToPlate(ing.id); SFX.add();
+}
+function addToPlate(id){ plate.push(id); renderPlate(); }
+function renderPlate(){
+  if(plate.length===0){ plateEl.innerHTML='<span class="ph">把食材点上来，照着顾客要的做~</span>'; return; }
+  plateEl.innerHTML = plate.map(id=>INGMAP[id].e).join(' ');
+}
+document.getElementById('clearBtn').onclick=()=>{ if(!running)return; plate=[]; renderPlate(); SFX.tap(); };
+document.getElementById('serveBtn').onclick=serve;
+
+/* ============ 顾客 ============ */
+const FACES=['🧒','👦','👧','🧑','👩','👨','👵','👴','🧕','👶'];
+function newCustomer(){
+  const n=2+Math.floor(Math.random()*3);                 // 2~4 样
+  const pool=ING.filter(i=>true); shuffle(pool);
+  const order=pool.slice(0,n).map(i=>i.id);
+  const maxP=Math.max(20, 34-served*0.35);                // 慢一点，越往后稍微快一点点
+  customer={order, max:maxP, pat:maxP, face:FACES[Math.floor(Math.random()*FACES.length)]};
+  custFace.textContent=customer.face; custFace.className='';
+  bubble.innerHTML = order.map(id=>INGMAP[id].e).join(' ');
+  queueInfo.textContent='已招待 '+served+' 位顾客';
+}
+function serve(){
+  if(!running||!customer) return;
+  const want=[...customer.order].sort().join(',');
+  const got=[...plate].sort().join(',');
+  if(want===got && plate.length>0){
+    const bonus=Math.round(customer.pat/customer.max*20);
+    const money=customer.order.length*8+bonus;
+    coins+=money; served++;
+    SFX.serve(); SFX.coin();
+    custFace.className='happy'; mascotMood('happy'); flash('😋 +'+money+'🪙 谢谢老板！');
+    plate=[]; renderPlate(); updateHUD();
+    customer=null;
+    setTimeout(()=>{ if(running) newCustomer(); }, 700);
+  } else {
+    SFX.err(); plateEl.classList.remove('shake'); void plateEl.offsetWidth; plateEl.classList.add('shake');
+    flash('🤔 跟上面对一下，做得不一样哦~');
+  }
+}
+function customerAngry(){
+  SFX.angry(); custFace.className='angry'; mascotMood('sad'); flash('😡 等太久啦，顾客生气走了！');
+  hearts--; updateHUD(); customer=null;
+  if(hearts<=0){ endDay(); return; }
+  setTimeout(()=>{ if(running) newCustomer(); }, 800);
+}
+
+/* 耐心条颜色：绿→黄→深黄→橙→深橙→红 */
+function patColor(f){
+  if(f>0.8) return '#39d353';
+  if(f>0.6) return '#a5d61f';
+  if(f>0.45) return '#ffd23c';
+  if(f>0.3) return '#ff9a3c';
+  if(f>0.15) return '#ff5e1a';
+  return '#ff2d2d';
+}
+
+/* ============ 小偷 ============ */
+function updateThief(dt){
+  if(thief.active){
+    thief.x += 150*dt;
+    thiefEl.style.left = thief.x+'px';
+    if(thief.x > window.innerWidth+40){      // 跑掉了，偷走金币
+      thief.active=false; thiefEl.style.display='none';
+      const steal=Math.min(coins,20); coins-=steal; updateHUD();
+      if(steal>0) flash('💸 小偷偷走了 '+steal+'🪙！');
+    }
+  } else {
+    thief.cd -= dt;
+    if(thief.cd<=0 && coins>15){            // 很少出现
+      thief.active=true; thief.x=-120; thief.t=0;
+      thiefEl.style.display='block'; thiefEl.style.left='-120px';
+      thief.cd = 30 + Math.random()*30;
+      SFX.thief(); flash('🦹 小偷来了！快点他！');
+    }
+  }
+}
+thiefEl.onclick=()=>{
+  if(!thief.active) return;
+  thief.active=false; thiefEl.style.display='none';
+  coins+=10; updateHUD(); SFX.caught(); flash('🚓 抓住小偷！+10🪙');
+};
+
+/* ============ 主循环 ============ */
+let last=0;
+function loop(t){
+  const dt=Math.min(0.05,(t-last)/1000)||0; last=t;
+  if(running && !paused){
+    // 薯条油炸
+    if(fries.state==='frying'){
+      fries.t-=dt;
+      friesBtn().querySelector('.fry i').style.width = Math.max(0,(1-fries.t/2.2))*100+'%';
+      if(fries.t<=0){ fries.state='ready'; friesBtn().classList.remove('frying'); friesBtn().classList.add('ready');
+        friesBtn().querySelector('.fry').style.display='none'; SFX.add(); flash('🍟 薯条炸好啦！再点一下放上盘'); }
+    }
+    // 顾客耐心
+    if(customer){
+      customer.pat-=dt;
+      const f=Math.max(0,customer.pat/customer.max);
+      patBar.style.width=(f*100)+'%'; patBar.style.background=patColor(f);
+      if(customer.pat<=0) customerAngry();
+    }
+    updateThief(dt);
+  }
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+
+/* ============ HUD / 飘字 ============ */
+function updateHUD(){
+  document.getElementById('coins').textContent='🪙 '+coins;
+  document.getElementById('hearts').textContent='❤️'.repeat(Math.max(0,hearts));
+}
+let toastT=0;
+function flash(msg){ toast.textContent=msg; toast.style.display='block'; toastT=1.4;
+  clearTimeout(flash._t); flash._t=setTimeout(()=>toast.style.display='none',1400); }
+
+/* ============ 摊位/装饰/场景渲染 ============ */
+function renderScene(){
+  const S=SCENES[sceneIdx]; stage.style.background=S.bg;
+  stage.innerHTML='';
+  S.scen.forEach(([e,x,y])=>{ const d=document.createElement('div'); d.className='scen'; d.textContent=e;
+    d.style.left=x+'%'; d.style.top=y+'%'; stage.appendChild(d); });
+}
+function renderMascot(){
+  document.querySelector('#mascot .hat').textContent=dress.hat;
+  document.querySelector('#mascot .acc').textContent=dress.acc;
+}
+function mascotMood(m){
+  const el=document.getElementById('mascot');
+  el.classList.remove('happy','sad'); void el.offsetWidth;
+  if(m){ el.classList.add(m); setTimeout(()=>el.classList.remove(m), m==='happy'?600:1100); }
+}
+function renderDecos(){ document.getElementById('decoBar').textContent = decos.join(' '); }
+
+document.getElementById('sceneBtn').onclick=()=>{ sceneIdx=(sceneIdx+1)%SCENES.length; renderScene(); SFX.tap(); flash('🎬 '+SCENES[sceneIdx].n); };
+
+/* ============ 装扮页 ============ */
+function buildDress(){
+  const hatRow=document.getElementById('hatRow'); hatRow.innerHTML='';
+  HATS.forEach(h=>{ const o=document.createElement('div'); o.className='opt'+(h===dress.hat?' sel':''); o.textContent=h||'∅';
+    o.onclick=()=>{ dress.hat=h; document.getElementById('manHat').textContent=h; renderMascot(); selRefresh(hatRow,o); SFX.tap(); };
+    hatRow.appendChild(o); });
+  const accRow=document.getElementById('accRow'); accRow.innerHTML='';
+  ACCS.forEach(a=>{ const o=document.createElement('div'); o.className='opt'+(a===dress.acc?' sel':''); o.textContent=a||'∅';
+    o.onclick=()=>{ dress.acc=a; document.getElementById('manAcc').textContent=a; renderMascot(); selRefresh(accRow,o); SFX.tap(); };
+    accRow.appendChild(o); });
+  document.getElementById('manHat').textContent=dress.hat;
+  document.getElementById('manAcc').textContent=dress.acc;
+}
+function selRefresh(row,sel){ row.querySelectorAll('.opt').forEach(x=>x.classList.remove('sel')); sel.classList.add('sel'); }
+document.getElementById('createBtn').onclick=()=>{
+  const d=DECOS[Math.floor(Math.random()*DECOS.length)];
+  decos.push(d); renderDecos(); SFX.coin();
+  flash('✨ 创造成功！摊位多了一个 '+d);
+};
+
+/* ============ 屏幕切换 ============ */
+function show(id){ document.getElementById(id).classList.add('show'); }
+function hide(id){ document.getElementById(id).classList.remove('show'); }
+document.getElementById('startBtn').onclick=()=>{ const ac=actx(); if(ac&&ac.state==='suspended')ac.resume(); startDay(); };
+document.getElementById('dressBtn').onclick=()=>{ buildDress(); hide('home'); show('dress'); };
+document.getElementById('dressBack').onclick=()=>{ hide('dress'); show('home'); };
+document.getElementById('homeBtn').onclick=()=>{ running=false; hide('over'); show('home'); };
+document.getElementById('overBtn').onclick=startDay;
+
+function startDay(){
+  coins=0; hearts=5; served=0; plate=[]; fries={state:'idle',t:0};
+  thief={active:false,x:-120,t:0,cd:25}; thiefEl.style.display='none';
+  friesBtn().classList.remove('frying','ready'); friesBtn().querySelector('.fry').style.display='none';
+  renderScene(); renderMascot(); renderDecos(); renderPlate(); updateHUD();
+  ['home','dress','over'].forEach(hide);
+  running=true; paused=false;
+  newCustomer();
+  flash('🌯 开门营业啦！');
+}
+function endDay(){
+  running=false;
+  document.getElementById('overText').innerHTML='今天一共招待了 <b>'+served+'</b> 位顾客<br>赚到 🪙 <b>'+coins+'</b> 元！'+
+    (served>=10?'<br>🏆 生意兴隆，了不起！':'<br>💪 明天再加油~');
+  show('over');
+}
+
+/* ============ 工具 ============ */
+function shuffle(a){ for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; }
+
+/* 初始 */
+renderScene(); renderMascot();
+</script>
+</body>
+</html>

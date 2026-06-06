@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🐧 小企鹅躲猫猫</title>
+<style>
+  html, body {
+    margin: 0; padding: 0; height: 100%; overflow: hidden;
+    font-family: "Comic Sans MS", "PingFang SC", sans-serif;
+    user-select: none; -webkit-user-select: none;
+    background: #2b2b4a;
+  }
+  /* 房间 */
+  #room {
+    position: fixed; inset: 0;
+    background: linear-gradient(#ffe2b8 0%, #ffe2b8 62%, #d9a86b 62%, #c79355 100%);
+  }
+  /* 墙上的小装饰 */
+  .deco {
+    position: absolute; font-size: 40px; pointer-events: none;
+    filter: drop-shadow(2px 3px 2px rgba(0,0,0,0.12));
+  }
+  /* 家具（藏身点） */
+  .spot {
+    position: absolute;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 92px;
+    cursor: pointer;
+    transition: transform 0.12s;
+    filter: drop-shadow(3px 5px 4px rgba(0,0,0,0.22));
+  }
+  .spot:hover { transform: scale(1.08) translateY(-4px); }
+  .spot.shake { animation: shake 0.4s; }
+  @keyframes shake {
+    0%,100% { transform: translateX(0); }
+    20% { transform: translateX(-10px) rotate(-4deg); }
+    40% { transform: translateX(10px) rotate(4deg); }
+    60% { transform: translateX(-8px) rotate(-3deg); }
+    80% { transform: translateX(8px) rotate(3deg); }
+  }
+  /* 找到时弹出的企鹅 */
+  #foundPenguin {
+    position: absolute; font-size: 96px; opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s;
+    filter: drop-shadow(3px 5px 4px rgba(0,0,0,0.25));
+  }
+  #foundPenguin.show { opacity: 1; animation: pop 0.5s; }
+  @keyframes pop {
+    0% { transform: scale(0) rotate(-30deg); }
+    60% { transform: scale(1.3) rotate(10deg); }
+    100% { transform: scale(1) rotate(0); }
+  }
+  /* 顶部提示条 */
+  #hint {
+    position: fixed; top: 14px; left: 50%; transform: translateX(-50%);
+    font-size: 30px; font-weight: bold; color: #fff; z-index: 5;
+    background: rgba(255,111,60,0.92); padding: 8px 28px; border-radius: 40px;
+    box-shadow: 0 4px 0 rgba(0,0,0,0.15); white-space: nowrap;
+    pointer-events: none; text-align: center;
+  }
+  /* 蒙眼倒计时遮罩 */
+  #blind {
+    position: fixed; inset: 0; z-index: 30;
+    display: flex; align-items: center; justify-content: center;
+    flex-direction: column;
+    background: radial-gradient(circle at 50% 45%, #5a4a3a 0%, #1a1208 80%);
+  }
+  #hands { font-size: 180px; line-height: 1; }
+  #count {
+    font-size: 150px; color: #ffd23c; font-weight: bold;
+    text-shadow: 4px 4px 0 #d2691e;
+    animation: cpop 1s infinite;
+  }
+  @keyframes cpop {
+    0% { transform: scale(0.6); opacity: 0; }
+    30% { transform: scale(1.15); opacity: 1; }
+    100% { transform: scale(1); opacity: 0.9; }
+  }
+  #blindText { color:#fff; font-size: 26px; margin-top: 4px; }
+  /* 开始 / 胜利 画面 */
+  #overlay {
+    position: fixed; inset: 0; z-index: 40;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    background: rgba(43,43,74,0.82); text-align: center; color: #fff;
+  }
+  #overlay h1 { font-size: 56px; margin: 0 0 8px; color: #ffd23c; text-shadow: 3px 3px 0 #d2691e; }
+  #overlay p { font-size: 26px; margin: 6px 0; }
+  .btn {
+    margin-top: 24px; font-family: inherit; font-size: 30px;
+    padding: 14px 46px; border: none; border-radius: 40px;
+    background: #ffd23c; color: #d2691e; box-shadow: 0 6px 0 #e0a800; cursor: pointer;
+  }
+  .btn:active { transform: translateY(4px); box-shadow: 0 2px 0 #e0a800; }
+  .hidden { display: none !important; }
+  /* 庆祝纸屑 */
+  .confetti { position: fixed; font-size: 26px; z-index: 35; pointer-events: none; }
+</style>
+</head>
+<body>
+  <div id="room">
+    <div id="foundPenguin">🐧</div>
+  </div>
+
+  <div id="hint">点一点家具，找出躲起来的小企鹅！</div>
+
+  <!-- 蒙眼倒计时 -->
+  <div id="blind" class="hidden">
+    <div id="hands">🙈</div>
+    <div id="count">3</div>
+    <div id="blindText">姐姐在数数，小企鹅快躲好~</div>
+  </div>
+
+  <!-- 开始画面 -->
+  <div id="overlay">
+    <h1>🐧 小企鹅躲猫猫</h1>
+    <p>小企鹅在自己家里，要和姐姐玩躲猫猫！</p>
+    <p>姐姐捂住眼睛数 3、2、1…</p>
+    <p>数完啦，快点家具把小企鹅找出来！</p>
+    <button class="btn" id="startBtn">开 始 玩</button>
+  </div>
+
+<script>
+const room = document.getElementById('room');
+const hintEl = document.getElementById('hint');
+const blind = document.getElementById('blind');
+const handsEl = document.getElementById('hands');
+const countEl = document.getElementById('count');
+const overlay = document.getElementById('overlay');
+const startBtn = document.getElementById('startBtn');
+const foundPenguin = document.getElementById('foundPenguin');
+
+// 房间里的藏身家具：emoji + 大致位置(百分比)
+const FURNITURE = [
+  { e: '🛋️', x: 18, y: 60, name: '沙发' },
+  { e: '🪟', x: 50, y: 28, name: '窗帘' },
+  { e: '📦', x: 80, y: 64, name: '大箱子' },
+  { e: '🪴', x: 90, y: 35, name: '盆栽' },
+  { e: '🛏️', x: 35, y: 78, name: '床' },
+  { e: '🚪', x: 64, y: 74, name: '门后' },
+  { e: '🗄️', x: 8, y: 33, name: '柜子' },
+];
+
+let spots = [];
+let hideIndex = -1;
+let tries = 0;
+let canSearch = false;
+
+// 墙上装饰一次性生成
+['🖼️','🕰️','🎈','⭐','🪀'].forEach((e, i) => {
+  const d = document.createElement('div');
+  d.className = 'deco'; d.textContent = e;
+  d.style.left = (12 + i * 18) + '%';
+  d.style.top = (6 + (i % 2) * 6) + '%';
+  room.appendChild(d);
+});
+
+function buildRoom() {
+  // 清掉旧家具
+  spots.forEach(s => s.remove());
+  spots = [];
+  FURNITURE.forEach((f, i) => {
+    const el = document.createElement('div');
+    el.className = 'spot';
+    el.textContent = f.e;
+    el.style.left = f.x + '%';
+    el.style.top = f.y + '%';
+    el.dataset.i = i;
+    el.addEventListener('click', () => onSearch(i, el));
+    room.appendChild(el);
+    spots.push(el);
+  });
+}
+
+function startGame() {
+  overlay.classList.add('hidden');
+  foundPenguin.classList.remove('show');
+  buildRoom();
+  tries = 0;
+  canSearch = false;
+  hideIndex = Math.floor(Math.random() * FURNITURE.length);
+  startCountdown();
+}
+
+// 蒙眼倒计时
+function startCountdown() {
+  blind.classList.remove('hidden');
+  hintEl.textContent = '姐姐在数数… 小企鹅躲好咯！';
+  let n = 3;
+  countEl.textContent = n;
+  handsEl.textContent = '🙈';
+  const timer = setInterval(() => {
+    n--;
+    if (n > 0) {
+      countEl.textContent = n;
+      handsEl.textContent = (n === 2) ? '🙉' : '🙈';
+    } else {
+      clearInterval(timer);
+      countEl.textContent = '🔍';
+      handsEl.textContent = '👀';
+      document.getElementById('blindText').textContent = '准备好啦，开始找！';
+      setTimeout(() => {
+        blind.classList.add('hidden');
+        canSearch = true;
+        hintEl.textContent = '点一点家具，找出躲起来的小企鹅！';
+      }, 700);
+    }
+  }, 1000);
+}
+
+function onSearch(i, el) {
+  if (!canSearch) return;
+  if (i === hideIndex) {
+    canSearch = false;
+    win(el);
+  } else {
+    tries++;
+    el.classList.remove('shake');
+    void el.offsetWidth;            // 重启动画
+    el.classList.add('shake');
+    showColdHot(i);
+  }
+}
+
+// 冷热提示：根据离正确家具的远近
+function showColdHot(i) {
+  const a = FURNITURE[i], b = FURNITURE[hideIndex];
+  const dist = Math.hypot(a.x - b.x, a.y - b.y);
+  let msg;
+  if (dist < 25) msg = '好热好热！🔥 就在附近！';
+  else if (dist < 50) msg = '有点温温的~ 😺 再找找';
+  else msg = '凉凉的~ ❄️ 换个地方找';
+  hintEl.textContent = msg;
+}
+
+function win(el) {
+  // 在被找到的家具上方弹出企鹅
+  const rect = el.getBoundingClientRect();
+  foundPenguin.style.left = (rect.left + rect.width / 2 - 48) + 'px';
+  foundPenguin.style.top = (rect.top - 40) + 'px';
+  foundPenguin.classList.add('show');
+  hintEl.textContent = '找到啦！🎉 小企鹅藏在「' + FURNITURE[hideIndex].name + '」！';
+  confetti();
+  setTimeout(() => {
+    overlay.querySelector('h1').textContent = '找到小企鹅啦！🐧🎉';
+    overlay.querySelectorAll('p').forEach(p => p.remove());
+    const p = document.createElement('p');
+    p.textContent = '一共找了 ' + (tries + 1) + ' 次，好厉害！';
+    overlay.querySelector('h1').after(p);
+    startBtn.textContent = '再 玩 一 次';
+    overlay.classList.remove('hidden');
+  }, 1600);
+}
+
+function confetti() {
+  const emojis = ['🎉','⭐','💛','🎊','❤️','🐧','✨'];
+  for (let k = 0; k < 40; k++) {
+    const c = document.createElement('div');
+    c.className = 'confetti';
+    c.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+    c.style.left = Math.random() * 100 + 'vw';
+    c.style.top = '-40px';
+    document.body.appendChild(c);
+    const dur = 1200 + Math.random() * 1500;
+    const drift = (Math.random() - 0.5) * 200;
+    c.animate([
+      { transform: 'translate(0,0) rotate(0deg)', opacity: 1 },
+      { transform: 'translate(' + drift + 'px,' + (window.innerHeight + 80) + 'px) rotate(720deg)', opacity: 1 }
+    ], { duration: dur, easing: 'ease-in' });
+    setTimeout(() => c.remove(), dur);
+  }
+}
+
+startBtn.addEventListener('click', startGame);
+</script>
+</body>
+</html>

@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🐦 小鸟飞飞飞</title>
+<style>
+  html, body {
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    height: 100%;
+    font-family: "Comic Sans MS", "PingFang SC", sans-serif;
+    background: #aee7ff;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  #game {
+    display: block;
+    cursor: none;
+    touch-action: none;
+  }
+  /* 顶部分数 */
+  #score {
+    position: fixed;
+    top: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 34px;
+    font-weight: bold;
+    color: #ff6f3c;
+    text-shadow: 2px 2px 0 #fff, -2px -2px 0 #fff, 2px -2px 0 #fff, -2px 2px 0 #fff;
+    pointer-events: none;
+    z-index: 10;
+  }
+  /* 开始 / 结束 画面 */
+  #overlay {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.55);
+    z-index: 20;
+    text-align: center;
+  }
+  #overlay h1 {
+    font-size: 52px;
+    color: #ff6f3c;
+    margin: 0 0 10px;
+    text-shadow: 3px 3px 0 #fff;
+  }
+  #overlay p {
+    font-size: 24px;
+    color: #3c7bff;
+    margin: 6px 0;
+  }
+  #overlay .big {
+    font-size: 30px;
+    color: #ff3c7b;
+    font-weight: bold;
+  }
+  #startBtn {
+    margin-top: 26px;
+    font-size: 30px;
+    font-family: inherit;
+    padding: 14px 44px;
+    border: none;
+    border-radius: 40px;
+    background: #ffd23c;
+    color: #d2691e;
+    box-shadow: 0 6px 0 #e0a800;
+    cursor: pointer;
+    transition: transform 0.08s, box-shadow 0.08s;
+  }
+  #startBtn:active {
+    transform: translateY(4px);
+    box-shadow: 0 2px 0 #e0a800;
+  }
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+  <div id="score">分数：0</div>
+  <canvas id="game"></canvas>
+
+  <div id="overlay">
+    <h1>🐦 小鸟飞飞飞</h1>
+    <p>用 <span class="big">鼠标</span> 带着小鸟一起飞~</p>
+    <p>躲开飞过来的 🍎 🌵 ⭐ 障碍物！</p>
+    <p>坚持得越久，分数越高！</p>
+    <button id="startBtn">开 始 玩</button>
+  </div>
+
+<script>
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+const scoreEl = document.getElementById('score');
+const overlay = document.getElementById('overlay');
+const startBtn = document.getElementById('startBtn');
+
+let W = 0, H = 0;
+function resize() {
+  W = canvas.width = window.innerWidth;
+  H = canvas.height = window.innerHeight;
+}
+window.addEventListener('resize', resize);
+resize();
+
+// 小鸟：跟随鼠标平滑移动
+const bird = {
+  x: W / 2,
+  y: H / 2,
+  r: 26,          // 碰撞半径
+  tx: W / 2,      // 目标位置（鼠标）
+  ty: H / 2,
+  flap: 0         // 翅膀扇动动画
+};
+
+// 障碍物种类（emoji + 半径）
+const KINDS = [
+  { e: '🍎', r: 22 },
+  { e: '🌵', r: 26 },
+  { e: '⭐', r: 22 },
+  { e: '🪨', r: 28 },
+  { e: '🎈', r: 24 },
+];
+
+let obstacles = [];
+let clouds = [];
+let particles = [];
+let running = false;
+let score = 0;
+let spawnTimer = 0;
+let spawnInterval = 90;   // 帧
+let speed = 3;
+let lastTime = 0;
+
+// 输入：鼠标 + 触摸
+function setTarget(x, y) { bird.tx = x; bird.ty = y; }
+canvas.addEventListener('mousemove', e => setTarget(e.clientX, e.clientY));
+canvas.addEventListener('touchmove', e => {
+  const t = e.touches[0];
+  setTarget(t.clientX, t.clientY);
+  e.preventDefault();
+}, { passive: false });
+
+function makeClouds() {
+  clouds = [];
+  for (let i = 0; i < 6; i++) {
+    clouds.push({
+      x: Math.random() * W,
+      y: Math.random() * H * 0.7,
+      s: 0.6 + Math.random() * 1.2,
+      v: 0.3 + Math.random() * 0.5
+    });
+  }
+}
+
+function spawnObstacle() {
+  const kind = KINDS[Math.floor(Math.random() * KINDS.length)];
+  obstacles.push({
+    x: W + 40,
+    y: 60 + Math.random() * (H - 120),
+    vy: (Math.random() - 0.5) * 2,   // 上下小幅游动
+    e: kind.e,
+    r: kind.r,
+    spin: (Math.random() - 0.5) * 0.1,
+    angle: 0
+  });
+}
+
+function burst(x, y, color) {
+  for (let i = 0; i < 18; i++) {
+    const a = Math.random() * Math.PI * 2;
+    const sp = 2 + Math.random() * 5;
+    particles.push({
+      x, y,
+      vx: Math.cos(a) * sp,
+      vy: Math.sin(a) * sp,
+      life: 1,
+      color
+    });
+  }
+}
+
+function startGame() {
+  obstacles = [];
+  particles = [];
+  score = 0;
+  spawnTimer = 0;
+  spawnInterval = 90;
+  speed = 3;
+  bird.x = bird.tx = W / 2;
+  bird.y = bird.ty = H / 2;
+  makeClouds();
+  overlay.classList.add('hidden');
+  running = true;
+  lastTime = performance.now();
+  requestAnimationFrame(loop);
+}
+
+function gameOver() {
+  running = false;
+  burst(bird.x, bird.y, '#ff6f3c');
+  overlay.innerHTML =
+    '<h1>哎呀，撞到啦！</h1>' +
+    '<p class="big">这次得了 ' + Math.floor(score) + ' 分</p>' +
+    '<p>再飞一次试试看？</p>' +
+    '<button id="startBtn">再 玩 一 次</button>';
+  overlay.classList.remove('hidden');
+  document.getElementById('startBtn').addEventListener('click', startGame);
+  // 让结束爆炸再画几帧
+  let t = 30;
+  (function fade() {
+    if (t-- > 0) { drawScene(); requestAnimationFrame(fade); }
+  })();
+}
+
+function loop(now) {
+  if (!running) return;
+  update();
+  drawScene();
+  requestAnimationFrame(loop);
+}
+
+function update() {
+  // 小鸟平滑跟随鼠标
+  bird.x += (bird.tx - bird.x) * 0.18;
+  bird.y += (bird.ty - bird.y) * 0.18;
+  bird.x = Math.max(bird.r, Math.min(W - bird.r, bird.x));
+  bird.y = Math.max(bird.r, Math.min(H - bird.r, bird.y));
+  bird.flap += 0.3;
+
+  // 分数 & 难度随时间增加
+  score += 0.1;
+  speed += 0.0015;
+  if (spawnInterval > 38) spawnInterval -= 0.04;
+  scoreEl.textContent = '分数：' + Math.floor(score);
+
+  // 生成障碍
+  if (++spawnTimer >= spawnInterval) {
+    spawnTimer = 0;
+    spawnObstacle();
+  }
+
+  // 移动障碍 + 碰撞检测
+  for (let i = obstacles.length - 1; i >= 0; i--) {
+    const o = obstacles[i];
+    o.x -= speed;
+    o.y += o.vy;
+    o.angle += o.spin;
+    if (o.y < o.r || o.y > H - o.r) o.vy *= -1;
+    if (o.x < -50) { obstacles.splice(i, 1); continue; }
+
+    const dx = o.x - bird.x;
+    const dy = o.y - bird.y;
+    const dist = Math.hypot(dx, dy);
+    if (dist < o.r + bird.r - 6) {
+      gameOver();
+      return;
+    }
+  }
+
+  // 云朵
+  for (const c of clouds) {
+    c.x -= c.v;
+    if (c.x < -120) { c.x = W + 60; c.y = Math.random() * H * 0.7; }
+  }
+
+  // 粒子
+  for (let i = particles.length - 1; i >= 0; i--) {
+    const p = particles[i];
+    p.x += p.vx; p.y += p.vy; p.vy += 0.15; p.life -= 0.03;
+    if (p.life <= 0) particles.splice(i, 1);
+  }
+}
+
+function drawCloud(x, y, s) {
+  ctx.fillStyle = 'rgba(255,255,255,0.85)';
+  ctx.beginPath();
+  ctx.arc(x, y, 26 * s, 0, Math.PI * 2);
+  ctx.arc(x + 26 * s, y + 6 * s, 20 * s, 0, Math.PI * 2);
+  ctx.arc(x - 26 * s, y + 6 * s, 20 * s, 0, Math.PI * 2);
+  ctx.arc(x, y + 10 * s, 24 * s, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+function drawBird() {
+  const { x, y, r } = bird;
+  const wing = Math.sin(bird.flap) * 10;
+  ctx.save();
+  ctx.translate(x, y);
+
+  // 身体
+  ctx.fillStyle = '#ffd23c';
+  ctx.beginPath();
+  ctx.ellipse(0, 0, r, r * 0.85, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // 翅膀
+  ctx.fillStyle = '#ffb13c';
+  ctx.beginPath();
+  ctx.ellipse(-6, -2, 14, 8 + Math.abs(wing) * 0.4, -0.5, 0, Math.PI * 2);
+  ctx.fill();
+
+  // 肚子
+  ctx.fillStyle = '#fff3b0';
+  ctx.beginPath();
+  ctx.ellipse(4, 8, r * 0.5, r * 0.4, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // 眼睛
+  ctx.fillStyle = '#fff';
+  ctx.beginPath();
+  ctx.arc(12, -8, 8, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#333';
+  ctx.beginPath();
+  ctx.arc(14, -8, 4, 0, Math.PI * 2);
+  ctx.fill();
+
+  // 嘴巴
+  ctx.fillStyle = '#ff6f3c';
+  ctx.beginPath();
+  ctx.moveTo(r - 2, -2);
+  ctx.lineTo(r + 12, 2);
+  ctx.lineTo(r - 2, 8);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.restore();
+}
+
+function drawScene() {
+  // 天空渐变
+  const g = ctx.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0, '#8fd6ff');
+  g.addColorStop(1, '#d6f4ff');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, W, H);
+
+  // 云
+  for (const c of clouds) drawCloud(c.x, c.y, c.s);
+
+  // 障碍物
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  for (const o of obstacles) {
+    ctx.save();
+    ctx.translate(o.x, o.y);
+    ctx.rotate(o.angle);
+    ctx.font = (o.r * 2) + 'px serif';
+    ctx.fillText(o.e, 0, 0);
+    ctx.restore();
+  }
+
+  // 粒子
+  for (const p of particles) {
+    ctx.globalAlpha = Math.max(0, p.life);
+    ctx.fillStyle = p.color;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, 5, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+
+  if (running) drawBird();
+}
+
+startBtn.addEventListener('click', startGame);
+
+// 初始画一帧背景
+makeClouds();
+drawScene();
+</script>
+</body>
+</html>

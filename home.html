@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🎮 小朋友游戏大厅</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0; min-height: 100%;
+    font-family: "Comic Sans MS", "PingFang SC", sans-serif;
+    background: linear-gradient(160deg, #ffe6a7 0%, #ffd1e8 45%, #c7f0ff 100%);
+    user-select: none; -webkit-user-select: none;
+  }
+  header { text-align: center; padding: 30px 16px 8px; }
+  header h1 { font-size: 46px; color: #ff6f3c; margin: 0; text-shadow: 2px 2px 0 #fff; }
+  header p { font-size: 22px; color: #777; margin: 8px 0 0; }
+  #grid {
+    display: grid; gap: 22px; padding: 24px;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    max-width: 1000px; margin: 0 auto;
+  }
+  .card {
+    background: #fff; border-radius: 28px; padding: 24px 18px; text-align: center;
+    text-decoration: none; color: #444; cursor: pointer;
+    box-shadow: 0 10px 0 rgba(0,0,0,0.08), 0 16px 30px rgba(0,0,0,0.12);
+    transition: transform 0.12s, box-shadow 0.12s; border: 5px solid #fff;
+  }
+  .card:hover { transform: translateY(-6px) scale(1.03); }
+  .card:active { transform: translateY(2px); box-shadow: 0 4px 0 rgba(0,0,0,0.08); }
+  .card .ic { font-size: 76px; line-height: 1; display: block; }
+  .card .nm { font-size: 28px; font-weight: bold; margin-top: 10px; }
+  .card .ds { font-size: 17px; color: #888; margin-top: 6px; line-height: 1.4; }
+  .c1 { border-color: #ffd23c; } .c2 { border-color: #8fd6ff; }
+  .c3 { border-color: #ffb6d5; } .c4 { border-color: #b6e89a; }
+  .c5 { border-color: #ffb13c; }
+  footer { text-align: center; color: #aaa; font-size: 15px; padding: 10px 0 30px; }
+</style>
+</head>
+<body>
+  <header>
+    <h1>🎮 小朋友游戏大厅</h1>
+    <p>点一个游戏，开始玩吧！</p>
+  </header>
+
+  <div id="grid">
+    <a class="card c5" href="penguin-home.html">
+      <span class="ic">🐧</span>
+      <div class="nm">小企鹅回家记</div>
+      <div class="ds">点路口走 17 站冒险，帮小企鹅找到回家的路</div>
+    </a>
+    <a class="card c1" href="index.html">
+      <span class="ic">🐦</span>
+      <div class="nm">小鸟飞飞飞</div>
+      <div class="ds">用鼠标带小鸟躲开障碍，飞得越久分越高</div>
+    </a>
+    <a class="card c2" href="hide-and-seek.html">
+      <span class="ic">🙈</span>
+      <div class="nm">小企鹅躲猫猫</div>
+      <div class="ds">数到一二三，点家具把躲起来的小企鹅找出来</div>
+    </a>
+    <a class="card c3" href="riddles.html">
+      <span class="ic">🧠</span>
+      <div class="nm">脑筋急转弯</div>
+      <div class="ds">会念题目的声音，选答案，闯关拿小冠军</div>
+    </a>
+    <a class="card c4" href="spot-difference.html">
+      <span class="ic">🔍</span>
+      <div class="nm">找不同</div>
+      <div class="ds">两张图找出不一样的地方，三种难度十张图</div>
+    </a>
+    <a class="card c3" href="draw-guess.html">
+      <span class="ic">🎨</span>
+      <div class="nm">你画我猜</div>
+      <div class="ds">画笔橡皮尺子调色盘，一个画一个猜，还能给提示</div>
+    </a>
+    <a class="card c5" href="escape-room.html">
+      <span class="ic">🏚️</span>
+      <div class="nm">逃离密室</div>
+      <div class="ds">3D 第一人称，躲怪物、捡道具、升级武器，逃出去通关</div>
+    </a>
+    <a class="card c1" href="shawarma.html">
+      <span class="ic">🌯</span>
+      <div class="nm">沙威玛小店</div>
+      <div class="ds">做料理招待客人赚钱，炸薯条、防小偷、换装扮和场景</div>
+    </a>
+  </div>
+
+  <footer>🌟 玩得开心呀 🌟</footer>
+</body>
+</html>
