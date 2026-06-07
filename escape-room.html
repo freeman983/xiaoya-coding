@@ -26,7 +26,8 @@
   #vehicle { position:fixed; bottom:4px; left:14px; font-size:72px; z-index:4; display:none;
              pointer-events:none; filter:drop-shadow(0 -3px 4px rgba(0,0,0,0.5)); }
   /* 控制 */
-  #controls { position:fixed; inset:0; z-index:7; }
+  #controls { position:fixed; inset:0; z-index:7; pointer-events:none; }
+  #controls .cbtn { pointer-events:auto; }
   #dpad { position:absolute; left:18px; bottom:18px; width:174px; height:174px; }
   .dp { width:56px; height:56px; font-size:24px; background:rgba(255,255,255,0.82); }
   #fwdBtn{ left:59px; top:0; } #bwdBtn{ left:59px; bottom:0; }
@@ -281,8 +282,17 @@ const MAPS = [
 /* ================= 状态 ================= */
 const view = document.getElementById('view');
 const ctx = view.getContext('2d');
-let RW = 480, RH = 300;          // 渲染分辨率
-view.width = RW; view.height = RH;
+let RW = 480, RH = 300;          // 渲染分辨率（按屏幕比例自适应，避免拉伸变形）
+let zBuffer = new Float32Array(RW);
+function fitView(){
+  const W=window.innerWidth, H=window.innerHeight;
+  RH = 300;
+  RW = Math.max(160, Math.min(1000, Math.round(RH * W / H)));
+  view.width = RW; view.height = RH;
+  if(zBuffer.length!==RW) zBuffer = new Float32Array(RW);
+}
+fitView();
+window.addEventListener('resize', fitView);
 
 let map, mapW, mapH;
 let player, sprites, coins, health, weaponDmg, weaponLvl, weaponEmoji='🔫', sceneIdx=0;
@@ -389,7 +399,7 @@ function setDir(a){
 function shuffle(a){ for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; }
 
 /* ================= 渲染 ================= */
-const zBuffer=new Float32Array(RW);
+// zBuffer 已在上方按屏幕比例创建
 function render(){
   const M=MAPS[sceneIdx];
   // 天花板 / 地板（带跳跃偏移）

@@ -11,8 +11,9 @@
     font-family: "Comic Sans MS", "PingFang SC", sans-serif;
     background: linear-gradient(160deg, #ffe6a7, #ffd1e8 55%, #c7f0ff);
     user-select: none; -webkit-user-select: none; overflow: hidden;
+    overscroll-behavior: none;
   }
-  #app { display: flex; height: 100vh; gap: 10px; padding: 10px; }
+  #app { display: flex; height: 100vh; gap: 10px; padding: 10px; overscroll-behavior: none; }
   /* ===== 左边：画画 ===== */
   #left { flex: 1.7; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
   #leftHead {
@@ -52,7 +53,7 @@
   #bright { width: 110px; }
   .wheelCol { display: flex; flex-direction: column; align-items: center; gap: 2px; }
   /* 画布 */
-  #canvasWrap { flex: 1; position: relative; min-height: 0; }
+  #canvasWrap { flex: 1; position: relative; min-height: 0; touch-action: none; }
   #board {
     width: 100%; height: 100%; background: #fff; border-radius: 18px; display: block;
     box-shadow: 0 6px 16px rgba(0,0,0,0.18); touch-action: none; cursor: crosshair;
