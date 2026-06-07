@@ -2,7 +2,7 @@
 <html lang="zh">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>🌯 沙威玛小店</title>
 <style>
   * { box-sizing: border-box; }
@@ -101,6 +101,32 @@
   .opt { font-size:30px; padding:8px 12px; border:3px solid #aaa; border-radius:14px; cursor:pointer; background:rgba(255,255,255,0.6); }
   .opt.sel { border-color:#ff9a3c; background:#fff3e0; }
   .lbl { font-size:18px; color:#3c5a8a; }
+  /* ===== 手机适配 ===== */
+  @media (max-width: 520px) {
+    .pill { font-size:16px; padding:6px 10px; }
+    .tbtn { font-size:14px; padding:6px 10px; }
+    #custFace { font-size:64px; }
+    #bubble { font-size:28px; }
+    #patWrap { width:180px; }
+    #mascot .figure { transform:scale(0.72); transform-origin:bottom center; }
+    #mascot .name { font-size:12px; }
+    #ingredients { gap:4px; padding:6px; }
+    .ing { padding:5px 1px 3px; }
+    .ing .ie { font-size:26px; }
+    .ing .inm { font-size:10px; }
+    #plate { font-size:30px; min-height:50px; }
+    .pbtn { font-size:18px; padding:9px 18px; }
+    h1 { font-size:40px; }
+    #manBody { font-size:120px; }
+  }
+  /* 矮屏（横屏手机/小窗）：把摊位元素往下收，避免重叠 */
+  @media (max-height: 680px) {
+    #mascot { bottom:200px; }
+    #mascot .figure { transform:scale(0.66); transform-origin:bottom center; }
+    #decoBar { bottom:184px; font-size:24px; }
+    #plateWrap { bottom:150px; }
+    #thief { bottom:96px; font-size:58px; }
+  }
 </style>
 </head>
 <body>

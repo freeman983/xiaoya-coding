@@ -2,7 +2,7 @@
 <html lang="zh">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>🎨 你画我猜</title>
 <style>
   * { box-sizing: border-box; }
@@ -97,6 +97,22 @@
     #app { flex-direction: column; height: auto; min-height: 100vh; overflow: auto; }
     #canvasWrap { height: 52vh; }
     #right { min-width: 0; }
+  }
+  /* 手机：工具栏更紧凑，给画布留空间 */
+  @media (max-width: 520px) {
+    #tools { gap: 5px; padding: 6px; }
+    .tbtn { width: 40px; height: 40px; font-size: 19px; }
+    .swatch { width: 26px; height: 26px; }
+    .sep { height: 30px; }
+    #wheelWrap, #wheel { width: 84px; height: 84px; }
+    #bright { width: 84px; }
+    #curColor { width: 32px; height: 32px; }
+    #leftHead .who { font-size: 17px; }
+    .smallbtn { font-size: 15px; padding: 6px 10px; }
+    #canvasWrap { height: 46vh; }
+    .pickBtn { font-size: 22px; padding: 14px 22px; }
+    #right h2 { font-size: 22px; }
+    .bigbtn { font-size: 19px; padding: 12px; }
   }
 </style>
 </head>

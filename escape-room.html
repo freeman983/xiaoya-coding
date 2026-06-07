@@ -2,7 +2,7 @@
 <html lang="zh">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>🏚️ 逃离密室</title>
 <style>
   * { box-sizing: border-box; }
@@ -73,11 +73,32 @@
   .bagit { background:rgba(255,255,255,0.1); border:2px solid rgba(255,255,255,0.3); border-radius:14px;
            padding:12px 16px; font-size:18px; min-width:120px; }
   .bagit .be { display:block; font-size:40px; }
+  /* 横屏提示 */
+  #rotateHint { position:fixed; top:0; left:0; right:0; z-index:9; display:none; align-items:center; justify-content:center;
+                background:rgba(0,0,0,0.62); color:#fff; font-size:14px; padding:5px 8px; pointer-events:none; text-align:center; }
+  @media (orientation:portrait) { #rotateHint { display:flex; } }
+  /* ===== 手机适配：缩小控制 ===== */
+  @media (max-width: 560px) {
+    #topBtns { flex-wrap:wrap; max-width:66vw; }
+    .tbtn2 { font-size:14px; padding:6px 9px; }
+    #coins { font-size:18px; }
+    #healthWrap { width:130px; }
+    #legend { font-size:11px; padding:5px 8px; }
+    #dpad { width:150px; height:150px; left:10px; bottom:10px; }
+    .dp { width:48px; height:48px; font-size:20px; }
+    #fwdBtn{ left:51px; top:0; } #bwdBtn{ left:51px; bottom:0; }
+    #tlBtn{ left:0; top:51px; } #trBtn{ right:0; top:51px; }
+    #shootBtn { width:84px; height:84px; font-size:32px; right:14px; bottom:22px; }
+    #jumpBtn { right:106px; bottom:28px; width:60px; height:60px; font-size:22px; }
+    #runBtn { right:24px; bottom:112px; width:60px; height:60px; font-size:22px; }
+    #weapon { font-size:96px; }
+  }
 </style>
 </head>
 <body>
 <canvas id="view"></canvas>
 
+<div id="rotateHint">🔄 把手机横过来玩，密室更带感哦！</div>
 <div id="scare"></div>
 <div id="danger"></div>
 <div id="weapon">🔫</div>
