@@ -81,8 +81,8 @@
   #toast { position:fixed; top:46%; left:50%; transform:translateX(-50%); z-index:11; font-size:28px; font-weight:bold;
            color:#fff; text-shadow:2px 2px 4px #000; background:rgba(0,0,0,0.35); padding:8px 20px; border-radius:20px; display:none; text-align:center; }
   /* 遮罩屏 */
-  .screen { position:fixed; inset:0; z-index:20; display:none; flex-direction:column; align-items:center; justify-content:center;
-            text-align:center; padding:22px; color:#5a3b1a; }
+  .screen { position:fixed; inset:0; z-index:20; display:none; flex-direction:column; align-items:center; justify-content:safe center;
+            text-align:center; padding:22px; color:#5a3b1a; overflow-y:auto; -webkit-overflow-scrolling:touch; overscroll-behavior:contain; }
   .screen.show { display:flex; }
   #home { background:radial-gradient(circle at 50% 30%, #ffe6a7, #ffcaa0); }
   #dress { background:radial-gradient(circle at 50% 30%, #d6f0ff, #bfe0ff); }

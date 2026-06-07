@@ -52,7 +52,8 @@
            background:#fff; color:#333; box-shadow:0 3px 0 rgba(0,0,0,0.25); pointer-events:auto; }
   /* 遮罩屏 */
   .screen { position:fixed; inset:0; z-index:20; display:none; flex-direction:column; align-items:center;
-            justify-content:center; text-align:center; color:#fff; padding:24px; }
+            justify-content:safe center; text-align:center; color:#fff; padding:24px;
+            overflow-y:auto; -webkit-overflow-scrolling:touch; overscroll-behavior:contain; touch-action:pan-y; }
   .screen.show { display:flex; }
   #start { background:radial-gradient(circle at 50% 35%, #3a2a4a, #0a0a14); }
   #garden { background:linear-gradient(#bdefff, #d8f8c0); color:#3a5a2a; }
@@ -93,6 +94,13 @@
     #jumpBtn { right:106px; bottom:28px; width:60px; height:60px; font-size:22px; }
     #runBtn { right:24px; bottom:112px; width:60px; height:60px; font-size:22px; }
     #weapon { font-size:96px; }
+    /* 开始/结算画面：手机上缩小，保证按钮够得着 */
+    .screen { padding:14px; justify-content:flex-start; }
+    .screen h1 { font-size:32px; }
+    .narr { font-size:16px; margin:8px 0 8px; }
+    .lbl { font-size:16px; margin:8px 0 2px; }
+    .opt { font-size:24px; padding:6px 10px; margin:4px; }
+    .btn { font-size:22px; padding:12px 32px; }
   }
 </style>
 </head>

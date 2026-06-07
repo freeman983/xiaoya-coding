@@ -174,21 +174,23 @@ function rand(min,max){ return min + Math.random()*(max-min); }
 
 /* 给第二张图制造一个“不同” */
 function makeMutation(item, theme){
-  const types = ['hue','hue','swap','swap','remove','scale','rotate'];
+  // 只用「保证看得出来」的变化：变色 / 换东西 / 不见了 / 变大变小
+  // （不再用旋转翻转——对称的图形转了也看不出区别）
+  const types = ['color','color','swap','swap','remove','scale'];
   const t = pick(types);
   const m = { type:t };
-  if (t === 'hue') {
-    m.filter = 'hue-rotate(' + Math.floor(rand(80,300)) + 'deg) saturate(1.8)';
+  if (t === 'color') {
+    // 先 sepia 统一上底色，再旋转色相 → 连灰色的石头、贝壳也能明显变色
+    m.filter = 'sepia(1) saturate(6) hue-rotate(' + Math.floor(rand(40,320)) + 'deg) brightness(1.05)';
   } else if (t === 'swap') {
     let e = item.e, tries = 0;
-    while (e === item.e && tries++ < 10) e = pick(theme.objs);
+    while (e === item.e && tries++ < 20) e = pick(theme.objs);
+    if (e === item.e) { m.type = 'remove'; m.hide = true; return m; }   // 实在没换到就改成消失
     m.emoji = e;
   } else if (t === 'remove') {
     m.hide = true;
   } else if (t === 'scale') {
-    m.transform = Math.random() < 0.5 ? ' scale(0.55)' : ' scale(1.7)';
-  } else if (t === 'rotate') {
-    m.transform = Math.random() < 0.5 ? ' rotate(180deg)' : ' scaleX(-1)';
+    m.transform = Math.random() < 0.5 ? ' scale(0.5)' : ' scale(1.8)';
   }
   return m;
 }
