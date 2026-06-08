@@ -114,6 +114,26 @@
     .pickBtn { font-size: 22px; padding: 14px 22px; }
     #right h2 { font-size: 22px; }
     .bigbtn { font-size: 19px; padding: 12px; }
+    #app { padding: 6px; gap: 6px; }
+    #right { padding: 10px; gap: 8px; }
+    #hintArea { min-height: 70px; padding: 8px; }
+    #answerBox { font-size: 24px; }
+    #right h2 { font-size: 19px; }
+    .hintLine { font-size: 17px; }
+  }
+  /* ===== 移动端优化 ===== */
+  #app { padding-bottom: max(10px, env(safe-area-inset-bottom)); }
+  @media (max-width: 820px) {
+    #tools { overflow-x: auto; flex-wrap: nowrap; -webkit-overflow-scrolling: touch; }
+    .wheelCol { flex-direction: row; align-items: center; }
+    #canvasWrap { min-height: 200px; }
+  }
+  @media (max-width: 380px) {
+    .tbtn { width: 36px; height: 36px; font-size: 17px; }
+    .swatch { width: 22px; height: 22px; }
+    #wheelWrap, #wheel { width: 72px; height: 72px; }
+    #bright { width: 72px; }
+    .pickBtn { font-size: 19px; padding: 12px 18px; }
   }
 </style>
 </head>

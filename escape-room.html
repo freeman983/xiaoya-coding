@@ -101,6 +101,19 @@
     .lbl { font-size:16px; margin:8px 0 2px; }
     .opt { font-size:24px; padding:6px 10px; margin:4px; }
     .btn { font-size:22px; padding:12px 32px; }
+    #dpad { bottom: max(18px, env(safe-area-inset-bottom)); }
+    #shootBtn { bottom: max(30px, env(safe-area-inset-bottom)); }
+    #jumpBtn { bottom: max(40px, env(safe-area-inset-bottom)); }
+    #runBtn { bottom: max(140px, env(safe-area-inset-bottom)); }
+    #legend { display: none; }
+    #topBtns { top: max(36px, env(safe-area-inset-top, 36px)); }
+  }
+  /* ===== 移动端优化 ===== */
+  .screen { padding-bottom: max(24px, env(safe-area-inset-bottom)); }
+  #dpad { bottom: max(18px, env(safe-area-inset-bottom)); }
+  #shootBtn { bottom: max(30px, env(safe-area-inset-bottom)); }
+  @media (orientation: portrait) {
+    #rotateHint { font-size: 16px; padding: 8px 14px; background: rgba(0,0,0,0.75); }
   }
 </style>
 </head>

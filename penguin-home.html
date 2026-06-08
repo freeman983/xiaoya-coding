@@ -101,6 +101,27 @@
   .node.done { background: rgba(110,216,106,0.3); border-color: #6ed86a; color: #cfffce; }
   .node.cur { background: #ffd23c; border-color: #fff; color: #b85c00; font-weight: bold; }
   .confetti { position: fixed; font-size: 28px; z-index: 50; pointer-events: none; }
+  /* ===== 移动端优化 ===== */
+  .hudbtn { min-height: 44px; }
+  @media (max-width: 480px) {
+    .hudbtn { font-size: 15px; padding: 8px 11px; }
+    #stopLabel { font-size: 15px; }
+    #bubble { font-size: 18px; padding: 10px 16px; max-width: 88%; }
+    .narr { font-size: 22px; }
+    h1 { font-size: 36px; }
+    .btn { font-size: 21px; padding: 11px 32px; }
+    #dpad { right: 10px; bottom: max(10px, env(safe-area-inset-bottom)); }
+    #moveTip { font-size: 14px; padding: 5px 10px; left: 10px; bottom: max(10px, env(safe-area-inset-bottom)); }
+    .gate .glm { font-size: 54px; }
+    .gate .glbl { font-size: 14px; }
+    #npc { font-size: 50px; }
+    #walker .peng { font-size: 56px; }
+    #walker .sis { font-size: 40px; }
+    .node { min-width: 70px; font-size: 13px; padding: 5px 7px; }
+    .node .nn { font-size: 20px; }
+    #mapTitle { font-size: 26px; }
+    #mapSub { font-size: 16px; }
+  }
 </style>
 </head>
 <body>

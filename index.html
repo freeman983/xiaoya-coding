@@ -79,6 +79,15 @@
     box-shadow: 0 2px 0 #e0a800;
   }
   .hidden { display: none !important; }
+  /* ===== 移动端优化 ===== */
+  #score { padding-top: env(safe-area-inset-top, 0px); }
+  @media (max-width: 480px) {
+    #overlay h1 { font-size: 36px; }
+    #overlay p  { font-size: 18px; margin: 5px 8px; }
+    #overlay .big { font-size: 22px; }
+    #startBtn { font-size: 24px; padding: 12px 36px; margin-top: 18px; }
+    #score { font-size: 26px; top: 12px; }
+  }
 </style>
 </head>
 <body>
@@ -87,13 +96,19 @@
 
   <div id="overlay">
     <h1>🐦 小鸟飞飞飞</h1>
-    <p>用 <span class="big">鼠标</span> 带着小鸟一起飞~</p>
+    <p>用 <span class="big" id="inputHint">鼠标</span> 带着小鸟一起飞~</p>
     <p>躲开飞过来的 🍎 🌵 ⭐ 障碍物！</p>
     <p>坚持得越久，分数越高！</p>
     <button id="startBtn">开 始 玩</button>
   </div>
 
 <script>
+// 触摸设备检测：自动切换操作提示文字
+if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
+  const hint = document.getElementById('inputHint');
+  if (hint) hint.textContent = '手指';
+}
+
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
 const scoreEl = document.getElementById('score');

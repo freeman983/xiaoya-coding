@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>🍦 小雅美食店</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin:0; padding:0; height:100%; overflow:hidden;
+    font-family:"Comic Sans MS","PingFang SC",sans-serif; user-select:none; -webkit-user-select:none; }
+  body { background:linear-gradient(160deg,#ffe6f0,#fff3d6 55%,#d9f3ff); }
+  .screen { position:fixed; inset:0; display:none; flex-direction:column; align-items:center;
+            justify-content:safe center; text-align:center; padding:16px; overflow-y:auto;
+            -webkit-overflow-scrolling:touch; overscroll-behavior:contain; touch-action:pan-y; }
+  .screen.show { display:flex; }
+  h1 { font-size:42px; margin:8px; color:#ff6f9c; text-shadow:2px 2px 0 #fff; }
+  .narr { font-size:20px; color:#7a6a5a; max-width:560px; line-height:1.5; margin:6px 0 12px; }
+  .btn { font-family:inherit; font-size:24px; padding:13px 38px; border:none; border-radius:30px;
+         background:#ffd23c; color:#b85c00; box-shadow:0 5px 0 #e0a800; cursor:pointer; margin:8px; }
+  .btn:active { transform:translateY(3px); box-shadow:0 2px 0 #e0a800; }
+  .btn.pink { background:#ff9ec4; color:#fff; box-shadow:0 5px 0 #e06a96; }
+  .btn.green { background:#a5e887; color:#2e7d32; box-shadow:0 5px 0 #6ec24a; }
+  /* 小姐姐角色 */
+  .girl { position:relative; width:120px; height:130px; margin:4px auto; }
+  .girl .body { font-size:96px; line-height:1; }
+  .girl .hat { position:absolute; top:-16px; left:50%; transform:translateX(-50%); font-size:46px; }
+  .girl .acc { position:absolute; top:54px; left:50%; transform:translateX(-50%); font-size:30px; }
+  /* 美食街卡片 */
+  #shops { display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:14px;
+           max-width:680px; width:100%; margin-top:8px; }
+  .shop { background:#fff; border-radius:22px; padding:16px 8px; cursor:pointer; border:4px solid #ffe0ec;
+          box-shadow:0 7px 0 rgba(0,0,0,0.07); transition:transform 0.1s; }
+  .shop:active { transform:translateY(3px); }
+  .shop .si { font-size:60px; display:block; }
+  .shop .sn { font-size:20px; font-weight:bold; color:#ff6f9c; margin-top:4px; }
+  /* 装扮选项 */
+  .optrow { display:flex; gap:8px; flex-wrap:wrap; justify-content:center; margin:4px 0 10px; }
+  .opt { font-size:28px; padding:8px 12px; border:3px solid #ddd; border-radius:14px; cursor:pointer; background:#fff; }
+  .opt.sel { border-color:#ff9ec4; background:#fff0f6; }
+  .lbl { font-size:18px; color:#a07; margin:10px 0 2px; }
+  /* ===== 制作台 ===== */
+  #maker { padding:0; }
+  #makerTop { width:100%; display:flex; align-items:center; justify-content:space-between; gap:6px;
+              padding:8px 10px; background:rgba(255,255,255,0.85); }
+  #makerTop .name { font-size:20px; font-weight:bold; color:#ff6f9c; }
+  .mbtn { font-family:inherit; font-size:16px; padding:8px 12px; border:none; border-radius:16px; cursor:pointer;
+          box-shadow:0 3px 0 rgba(0,0,0,0.15); }
+  #backBtn { background:#fff; color:#555; } #redoBtn { background:#ffd6d6; color:#c62828; } #doneBtn { background:#c8f7c5; color:#2e7d32; }
+  #foodArt { flex:1; position:relative; width:100%; min-height:0; }
+  .piece.container { position:absolute; bottom:8px; left:50%; transform:translateX(-50%); font-size:90px; }
+  .scoop { position:absolute; left:50%; transform:translateX(-50%); width:74px; height:74px; border-radius:50%;
+           box-shadow:inset -7px -9px 0 rgba(0,0,0,0.10), inset 6px 7px 0 rgba(255,255,255,0.45), 0 2px 4px rgba(0,0,0,0.18); }
+  .topping { position:absolute; transform:translateX(-50%); font-size:30px; }
+  .fitem { position:absolute; transform:translateX(-50%); font-size:42px; filter:drop-shadow(1px 2px 2px rgba(0,0,0,0.18)); }
+  .fgarnish { position:absolute; transform:translateX(-50%); font-size:30px; }
+  /* 调料盘 */
+  #palette { width:100%; background:rgba(255,255,255,0.95); border-top:4px solid #ffd23c;
+             padding:6px 8px 10px; max-height:42vh; overflow-y:auto; }
+  .palrow { margin:4px 0; }
+  .palrow .plbl { font-size:15px; color:#999; margin:2px 2px; }
+  .palline { display:flex; gap:8px; overflow-x:auto; padding:4px 2px; }
+  .pbtn { flex:0 0 auto; font-family:inherit; min-width:56px; border:3px solid #eee; border-radius:14px;
+          background:#fafafa; cursor:pointer; padding:6px 8px; text-align:center; }
+  .pbtn:active { transform:scale(0.93); }
+  .pbtn .pe { font-size:30px; display:block; line-height:1; }
+  .pbtn .pn { font-size:12px; color:#777; }
+  .pbtn.sel { border-color:#ff9ec4; background:#fff0f6; }
+  .ball { width:34px; height:34px; border-radius:50%; margin:0 auto; box-shadow:inset -3px -4px 0 rgba(0,0,0,0.1); }
+  /* 飘字 + 纸屑 */
+  #toast { position:fixed; top:40%; left:50%; transform:translateX(-50%); z-index:30; font-size:26px; font-weight:bold;
+           color:#fff; text-shadow:2px 2px 4px #000; background:rgba(0,0,0,0.35); padding:8px 20px; border-radius:20px;
+           display:none; text-align:center; }
+  .confetti { position:fixed; font-size:26px; z-index:25; pointer-events:none; }
+  @media (max-width:520px){
+    h1{ font-size:34px; } .shop .si{ font-size:48px; } .shop .sn{ font-size:17px; }
+    .piece.container{ font-size:76px; } .scoop{ width:62px; height:62px; }
+    #palette { max-height: 36vh; }
+    .mbtn { font-size:14px; padding:7px 10px; }
+    #makerTop .name { font-size:17px; }
+    #shops { gap: 10px; }
+    .shop { padding: 12px 6px; }
+  }
+  /* ===== 移动端优化 ===== */
+  .palline { -webkit-overflow-scrolling: touch; }
+  .pbtn { min-height: 48px; }
+  .screen { padding-bottom: max(16px, env(safe-area-inset-bottom)); }
+  #palette { padding-bottom: max(6px, env(safe-area-inset-bottom)); }
+  @media (max-width: 380px) {
+    .shop .si { font-size: 40px; }
+    .shop .sn { font-size: 15px; }
+    #shops { grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); }
+    .opt { font-size: 24px; padding: 6px 10px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- 首页 -->
+<div id="home" class="screen show">
+  <h1>🍦 小雅美食店</h1>
+  <div class="girl" id="homeGirl"><div class="hat"></div><div class="body">👧</div><div class="acc"></div></div>
+  <div class="narr">先把小姐姐打扮得美美的，<br>再去美食街，自己动手做各种好吃的！🍡🥟🍜</div>
+  <button class="btn pink" id="dressBtn">👗 装扮姐姐</button>
+  <button class="btn" id="startBtn">▶️ 去美食街</button>
+</div>
+
+<!-- 装扮 -->
+<div id="dress" class="screen">
+  <h1>👗 装扮姐姐</h1>
+  <div class="girl" id="dressGirl"><div class="hat"></div><div class="body">👧</div><div class="acc"></div></div>
+  <div class="lbl">帽子 / 头饰</div>
+  <div class="optrow" id="hatRow"></div>
+  <div class="lbl">小配饰</div>
+  <div class="optrow" id="accRow"></div>
+  <button class="btn green" id="dressDone">✅ 好了，出发！</button>
+</div>
+
+<!-- 美食街 -->
+<div id="street" class="screen">
+  <h1>🏮 美食街</h1>
+  <div class="girl" id="streetGirl" style="width:90px;height:100px;"><div class="hat"></div><div class="body" style="font-size:72px;">👧</div><div class="acc" style="top:40px;"></div></div>
+  <div class="narr">想做什么？点一家店进去做做看~</div>
+  <div id="shops"></div>
+  <button class="btn pink" id="streetDress" style="font-size:18px;padding:10px 22px;">👗 换装扮</button>
+</div>
+
+<!-- 制作台 -->
+<div id="maker" class="screen">
+  <div id="makerTop">
+    <button class="mbtn" id="backBtn">🏮 美食街</button>
+    <span class="name" id="makerName"></span>
+    <span>
+      <button class="mbtn" id="redoBtn">🔄 重做</button>
+      <button class="mbtn" id="doneBtn">✅ 做好啦</button>
+    </span>
+  </div>
+  <div id="foodArt"></div>
+  <div id="palette"></div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+/* ============ 各家店 ============ */
+const STATIONS = {
+  ice: { name:'冰淇淋店', icon:'🍦', mode:'icecream',
+    containers:[{id:'cone',e:'🍦',n:'蛋筒'},{id:'cup',e:'🥤',n:'纸杯'},{id:'bowl',e:'🥣',n:'小碗'},{id:'bucket',e:'🪣',n:'大桶'}],
+    flavors:[{n:'草莓',c:'#ff8fb0'},{n:'香草',c:'#fdeeb0'},{n:'巧克力',c:'#8a5a3b'},{n:'抹茶',c:'#9bd17a'},
+             {n:'蓝莓',c:'#8aa0ff'},{n:'芒果',c:'#ffcc4d'},{n:'葡萄',c:'#c08af0'},{n:'薄荷',c:'#9fe6d6'},{n:'樱花',c:'#ffc0e0'}],
+    toppings:[{e:'🍒',n:'樱桃'},{e:'🍓',n:'草莓'},{e:'🍫',n:'巧克力'},{e:'🌰',n:'坚果'},{e:'⭐',n:'星星'},
+              {e:'🫐',n:'蓝莓'},{e:'🍪',n:'饼干'},{e:'🌈',n:'彩虹糖'},{e:'🍯',n:'蜂蜜'},{e:'🥨',n:'脆条'}] },
+  jiaozi: { name:'饺子店', icon:'🥟', mode:'plate', base:{e:'🍽️',n:'盘子'},
+    items:[{e:'🥟',n:'饺子'},{e:'🥬',n:'白菜'},{e:'🥩',n:'肉馅'},{e:'🍤',n:'虾'},{e:'🥚',n:'鸡蛋'},{e:'🧄',n:'蒜'}],
+    garnish:[{e:'🌶️',n:'辣椒'},{e:'🧅',n:'葱'},{e:'🥢',n:'筷子'},{e:'🍚',n:'米饭'}] },
+  qingtuan: { name:'青团店', icon:'🍡', mode:'plate', base:{e:'🧺',n:'蒸笼'},
+    items:[{e:'🍡',n:'青团'},{e:'🟢',n:'糯米团'},{e:'🫛',n:'豆沙'},{e:'🌿',n:'艾草'}],
+    garnish:[{e:'🌸',n:'花瓣'},{e:'🍃',n:'叶子'},{e:'✨',n:'糖霜'}] },
+  lamian: { name:'拉面店', icon:'🍜', mode:'plate', base:{e:'🍜',n:'大碗'},
+    items:[{e:'🍜',n:'面条'},{e:'🥚',n:'溏心蛋'},{e:'🥩',n:'叉烧'},{e:'🌽',n:'玉米'},{e:'🥬',n:'青菜'},{e:'🍤',n:'虾'}],
+    garnish:[{e:'🌶️',n:'辣油'},{e:'🧅',n:'葱花'},{e:'🥢',n:'筷子'}] },
+  kaoya: { name:'烤鸭店', icon:'🦆', mode:'plate', base:{e:'🍽️',n:'盘子'},
+    items:[{e:'🍗',n:'鸭肉'},{e:'🫓',n:'薄饼'},{e:'🥒',n:'黄瓜'},{e:'🧅',n:'葱丝'},{e:'🦆',n:'烤鸭'}],
+    garnish:[{e:'🍯',n:'甜面酱'},{e:'🌶️',n:'辣椒'},{e:'🥢',n:'筷子'}] },
+  cake: { name:'蛋糕店', icon:'🍰', mode:'plate', base:{e:'🎂',n:'蛋糕胚'},
+    items:[{e:'🍓',n:'草莓'},{e:'🫐',n:'蓝莓'},{e:'🍫',n:'巧克力'},{e:'🥝',n:'猕猴桃'},{e:'🍒',n:'樱桃'},{e:'🍦',n:'奶油'}],
+    garnish:[{e:'🕯️',n:'蜡烛'},{e:'🎀',n:'丝带'},{e:'⭐',n:'糖星'},{e:'🌈',n:'彩糖'}] },
+  sushi: { name:'寿司店', icon:'🍣', mode:'plate', base:{e:'🍱',n:'餐盒'},
+    items:[{e:'🍣',n:'寿司'},{e:'🍙',n:'饭团'},{e:'🦐',n:'虾'},{e:'🥑',n:'牛油果'},{e:'🐟',n:'鱼'},{e:'🍚',n:'米饭'}],
+    garnish:[{e:'🌿',n:'紫苏'},{e:'🥢',n:'筷子'},{e:'💚',n:'芥末'}] },
+};
+const ORDER = ['ice','jiaozi','qingtuan','lamian','kaoya','cake','sushi'];
+
+const HATS = ['','🎀','👑','🧢','🎩','🌸','🍓','⛑️'];
+const ACCS = ['','👓','🕶️','💄','⭐','🌟','❤️'];
+
+/* ============ 状态 ============ */
+let dress = {hat:'🎀', acc:''};
+let cur = null;            // 当前店 id
+let build = null;          // 当前作品
+
+/* ============ 音效 ============ */
+let AC=null;
+function actx(){ if(!AC){ try{AC=new (window.AudioContext||window.webkitAudioContext)();}catch(e){} } return AC; }
+function beep(f,d,t,v,to){ const ac=actx(); if(!ac)return; const o=ac.createOscillator(),g=ac.createGain();
+  o.type=t||'square'; o.frequency.setValueAtTime(f,ac.currentTime); if(to)o.frequency.linearRampToValueAtTime(to,ac.currentTime+d);
+  g.gain.setValueAtTime(v||0.13,ac.currentTime); g.gain.exponentialRampToValueAtTime(0.001,ac.currentTime+d);
+  o.connect(g).connect(ac.destination); o.start(); o.stop(ac.currentTime+d); }
+const SFX={ add:()=>beep(680,0.08,'square',0.13,920), tap:()=>beep(440,0.05,'square',0.1,560),
+  done:()=>{ [660,880,1100,1320].forEach((f,i)=>setTimeout(()=>beep(f,0.16,'square',0.14),i*90)); } };
+
+/* ============ 工具 ============ */
+function rand(a,b){ return a+Math.random()*(b-a); }
+function show(id){ document.querySelectorAll('.screen').forEach(s=>s.classList.remove('show')); document.getElementById(id).classList.add('show'); }
+let toastT;
+function flash(m){ const t=document.getElementById('toast'); t.textContent=m; t.style.display='block';
+  clearTimeout(toastT); toastT=setTimeout(()=>t.style.display='none',1300); }
+
+/* ============ 角色渲染 ============ */
+function renderGirls(){
+  document.querySelectorAll('.girl').forEach(g=>{
+    g.querySelector('.hat').textContent=dress.hat;
+    g.querySelector('.acc').textContent=dress.acc;
+  });
+}
+
+/* ============ 装扮 ============ */
+function buildDress(){
+  const hr=document.getElementById('hatRow'); hr.innerHTML='';
+  HATS.forEach(h=>{ const o=document.createElement('div'); o.className='opt'+(h===dress.hat?' sel':''); o.textContent=h||'∅';
+    o.onclick=()=>{ dress.hat=h; renderGirls(); hr.querySelectorAll('.opt').forEach(x=>x.classList.remove('sel')); o.classList.add('sel'); SFX.tap(); };
+    hr.appendChild(o); });
+  const ar=document.getElementById('accRow'); ar.innerHTML='';
+  ACCS.forEach(a=>{ const o=document.createElement('div'); o.className='opt'+(a===dress.acc?' sel':''); o.textContent=a||'∅';
+    o.onclick=()=>{ dress.acc=a; renderGirls(); ar.querySelectorAll('.opt').forEach(x=>x.classList.remove('sel')); o.classList.add('sel'); SFX.tap(); };
+    ar.appendChild(o); });
+}
+
+/* ============ 美食街 ============ */
+function buildStreet(){
+  const box=document.getElementById('shops'); box.innerHTML='';
+  ORDER.forEach(id=>{
+    const st=STATIONS[id];
+    const c=document.createElement('div'); c.className='shop';
+    c.innerHTML='<span class="si">'+st.icon+'</span><span class="sn">'+st.name+'</span>';
+    c.onclick=()=>openMaker(id);
+    box.appendChild(c);
+  });
+}
+
+/* ============ 制作台 ============ */
+const art=document.getElementById('foodArt');
+const palette=document.getElementById('palette');
+function openMaker(id){
+  cur=id; const st=STATIONS[id];
+  document.getElementById('makerName').textContent=st.icon+' '+st.name;
+  if(st.mode==='icecream') build={container:st.containers[0], scoops:[], toppings:[]};
+  else build={items:[], garnish:[]};
+  renderFood(); renderPalette();
+  show('maker');
+}
+function renderFood(){
+  art.innerHTML='';
+  const st=STATIONS[cur];
+  if(st.mode==='icecream'){
+    const cont=document.createElement('div'); cont.className='piece container'; cont.textContent=build.container.e;
+    art.appendChild(cont);
+    build.scoops.forEach((c,i)=>{ const s=document.createElement('div'); s.className='scoop';
+      s.style.background=c; s.style.bottom=(86+i*38)+'px'; art.appendChild(s); });
+    const tb=86+build.scoops.length*38+4;
+    build.toppings.forEach(t=>{ const e=document.createElement('div'); e.className='topping'; e.textContent=t.e;
+      e.style.bottom=(tb+t.dy)+'px'; e.style.left='calc(50% + '+t.dx+'px)'; art.appendChild(e); });
+  } else {
+    const base=document.createElement('div'); base.className='piece container'; base.textContent=st.base.e;
+    art.appendChild(base);
+    build.items.forEach(t=>{ const e=document.createElement('div'); e.className='fitem'; e.textContent=t.e;
+      e.style.bottom=(54+t.dy)+'px'; e.style.left='calc(50% + '+t.dx+'px)'; art.appendChild(e); });
+    build.garnish.forEach(t=>{ const e=document.createElement('div'); e.className='fgarnish'; e.textContent=t.e;
+      e.style.bottom=(140+t.dy)+'px'; e.style.left='calc(50% + '+t.dx+'px)'; art.appendChild(e); });
+  }
+}
+function palRow(label, lineEl){
+  const r=document.createElement('div'); r.className='palrow';
+  const l=document.createElement('div'); l.className='plbl'; l.textContent=label;
+  r.appendChild(l); r.appendChild(lineEl); return r;
+}
+function renderPalette(){
+  palette.innerHTML=''; const st=STATIONS[cur];
+  if(st.mode==='icecream'){
+    // 容器
+    let line=document.createElement('div'); line.className='palline';
+    st.containers.forEach(c=>{ const b=document.createElement('button'); b.className='pbtn'+(c.id===build.container.id?' sel':'');
+      b.innerHTML='<span class="pe">'+c.e+'</span><span class="pn">'+c.n+'</span>';
+      b.onclick=()=>{ build.container=c; renderFood();
+        palette.querySelectorAll('.palline')[0].querySelectorAll('.pbtn').forEach(x=>x.classList.remove('sel')); b.classList.add('sel'); SFX.tap(); };
+      line.appendChild(b); });
+    palette.appendChild(palRow('① 选一个容器', line));
+    // 口味球
+    line=document.createElement('div'); line.className='palline';
+    st.flavors.forEach(f=>{ const b=document.createElement('button'); b.className='pbtn';
+      b.innerHTML='<div class="ball" style="background:'+f.c+'"></div><span class="pn">'+f.n+'</span>';
+      b.onclick=()=>addScoop(f.c); line.appendChild(b); });
+    palette.appendChild(palRow('② 加冰淇淋球（点一下叠一个）', line));
+    // 配料
+    line=document.createElement('div'); line.className='palline';
+    st.toppings.forEach(t=>{ const b=document.createElement('button'); b.className='pbtn';
+      b.innerHTML='<span class="pe">'+t.e+'</span><span class="pn">'+t.n+'</span>';
+      b.onclick=()=>addTopping(t.e); line.appendChild(b); });
+    palette.appendChild(palRow('③ 加配料', line));
+  } else {
+    let line=document.createElement('div'); line.className='palline';
+    st.items.forEach(t=>{ const b=document.createElement('button'); b.className='pbtn';
+      b.innerHTML='<span class="pe">'+t.e+'</span><span class="pn">'+t.n+'</span>';
+      b.onclick=()=>addItem(t.e); line.appendChild(b); });
+    palette.appendChild(palRow('① 加食材（点一下放一个）', line));
+    line=document.createElement('div'); line.className='palline';
+    st.garnish.forEach(t=>{ const b=document.createElement('button'); b.className='pbtn';
+      b.innerHTML='<span class="pe">'+t.e+'</span><span class="pn">'+t.n+'</span>';
+      b.onclick=()=>addGarnish(t.e); line.appendChild(b); });
+    palette.appendChild(palRow('② 加点缀', line));
+  }
+}
+function addScoop(c){ if(build.scoops.length>=7){ flash('🍦 太高啦，会倒的~'); return; } build.scoops.push(c); SFX.add(); renderFood(); }
+function addTopping(e){ if(build.toppings.length>=8){ flash('配料够多啦~'); return; } build.toppings.push({e,dx:rand(-42,42),dy:rand(-8,16)}); SFX.add(); renderFood(); }
+function addItem(e){ if(build.items.length>=10){ flash('盘子满啦~'); return; } build.items.push({e,dx:rand(-58,58),dy:rand(0,72)}); SFX.add(); renderFood(); }
+function addGarnish(e){ if(build.garnish.length>=6){ flash('点缀够啦~'); return; } build.garnish.push({e,dx:rand(-46,46),dy:rand(0,44)}); SFX.add(); renderFood(); }
+
+document.getElementById('redoBtn').onclick=()=>{ const st=STATIONS[cur];
+  if(st.mode==='icecream') build={container:st.containers[0],scoops:[],toppings:[]}; else build={items:[],garnish:[]};
+  renderFood(); renderPalette(); SFX.tap(); };
+document.getElementById('doneBtn').onclick=()=>{ SFX.done(); confetti(); flash('🎉 哇，太好吃啦！做得真棒！'); };
+document.getElementById('backBtn').onclick=()=>{ show('street'); };
+
+/* ============ 屏幕切换 ============ */
+document.getElementById('dressBtn').onclick=()=>{ buildDress(); show('dress'); };
+document.getElementById('streetDress').onclick=()=>{ buildDress(); show('dress'); };
+document.getElementById('dressDone').onclick=()=>{ buildStreet(); show('street'); };
+document.getElementById('startBtn').onclick=()=>{ const ac=actx(); if(ac&&ac.state==='suspended')ac.resume(); buildStreet(); show('street'); };
+
+/* ============ 纸屑 ============ */
+function confetti(){
+  const em=['🎉','⭐','💛','✨','🎊','🍦','🍓','🌈'];
+  const n=window.innerWidth<520?22:40;
+  for(let k=0;k<n;k++){ const c=document.createElement('div'); c.className='confetti';
+    c.textContent=em[Math.floor(Math.random()*em.length)]; c.style.left=Math.random()*100+'vw'; c.style.top='-40px';
+    document.body.appendChild(c); const dur=1100+Math.random()*1400, drift=(Math.random()-0.5)*180;
+    c.animate([{transform:'translate(0,0) rotate(0)',opacity:1},
+      {transform:'translate('+drift+'px,'+(window.innerHeight+80)+'px) rotate(680deg)',opacity:1}],{duration:dur,easing:'ease-in'});
+    setTimeout(()=>c.remove(),dur); }
+}
+
+/* 初始 */
+renderGirls();
+</script>
+</body>
+</html>

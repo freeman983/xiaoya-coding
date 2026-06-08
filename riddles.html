@@ -11,7 +11,7 @@
     background: linear-gradient(160deg, #ffe6a7 0%, #ffd1e8 50%, #c7f0ff 100%);
     user-select: none; -webkit-user-select: none;
     display: flex; align-items: center; justify-content: center;
-    min-height: 100vh; box-sizing: border-box; padding: 16px;
+    min-height: 100dvh; box-sizing: border-box; padding: 16px;
   }
   #card {
     width: 100%; max-width: 580px;
@@ -68,6 +68,28 @@
   .hidden { display: none !important; }
   #endTitle { font-size: 34px; color: #ff3c7b; margin: 8px 0; }
   .confetti { position: fixed; font-size: 28px; z-index: 50; pointer-events: none; }
+  /* ===== 移动端优化 ===== */
+  @media (hover: hover) {
+    .pick:active { transform: scale(0.96); }
+    .choice:hover { transform: scale(1.03); background: #e0efff; }
+  }
+  .choice:hover { transform: none; background: #eef6ff; }
+  @media (max-width: 480px) {
+    body { padding: 10px; }
+    #card { padding: 18px 16px 22px; border-radius: 24px; }
+    h1 { font-size: 30px; margin: 2px 0 10px; }
+    .label { font-size: 18px; }
+    .pick { font-size: 18px; padding: 12px 14px; min-width: 100px; }
+    .pick .ic { font-size: 30px; }
+    #top { font-size: 16px; }
+    #emoji { font-size: 54px; }
+    #question { font-size: 22px; min-height: 60px; }
+    #speakBtn { font-size: 17px; padding: 8px 18px; }
+    #choices { gap: 10px; margin-top: 10px; }
+    .choice { font-size: 20px; padding: 13px 12px; border-radius: 18px; }
+    #feedback { font-size: 18px; min-height: 44px; }
+    .btn { font-size: 20px; padding: 11px 32px; }
+  }
 </style>
 </head>
 <body>

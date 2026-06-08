@@ -26,7 +26,9 @@
     box-shadow: 0 10px 0 rgba(0,0,0,0.08), 0 16px 30px rgba(0,0,0,0.12);
     transition: transform 0.12s, box-shadow 0.12s; border: 5px solid #fff;
   }
-  .card:hover { transform: translateY(-6px) scale(1.03); }
+  @media (hover: hover) {
+    .card:hover { transform: translateY(-6px) scale(1.03); }
+  }
   .card:active { transform: translateY(2px); box-shadow: 0 4px 0 rgba(0,0,0,0.08); }
   .card .ic { font-size: 76px; line-height: 1; display: block; }
   .card .nm { font-size: 28px; font-weight: bold; margin-top: 10px; }
@@ -35,6 +37,19 @@
   .c3 { border-color: #ffb6d5; } .c4 { border-color: #b6e89a; }
   .c5 { border-color: #ffb13c; }
   footer { text-align: center; color: #aaa; font-size: 15px; padding: 10px 0 30px; }
+  /* ===== 移动端优化 ===== */
+  html, body { min-height: 100dvh; }
+  footer { padding-bottom: max(30px, env(safe-area-inset-bottom)); }
+  @media (max-width: 480px) {
+    header { padding: 20px 12px 4px; }
+    header h1 { font-size: 34px; }
+    header p { font-size: 17px; }
+    #grid { gap: 14px; padding: 14px 12px; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); }
+    .card { padding: 18px 12px; border-radius: 20px; border-width: 4px; }
+    .card .ic { font-size: 54px; }
+    .card .nm { font-size: 21px; }
+    .card .ds { font-size: 14px; }
+  }
 </style>
 </head>
 <body>

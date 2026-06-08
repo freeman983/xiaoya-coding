@@ -110,14 +110,15 @@
     #patWrap { width:180px; }
     #mascot .figure { transform:scale(0.72); transform-origin:bottom center; }
     #mascot .name { font-size:12px; }
-    #ingredients { gap:4px; padding:6px; }
-    .ing { padding:5px 1px 3px; }
+    #ingredients { gap:4px; padding:6px; grid-template-columns: repeat(5, 1fr); }
+    .ing { padding:5px 1px 3px; min-height: 54px; }
     .ing .ie { font-size:26px; }
     .ing .inm { font-size:10px; }
     #plate { font-size:30px; min-height:50px; }
     .pbtn { font-size:18px; padding:9px 18px; }
     h1 { font-size:40px; }
     #manBody { font-size:120px; }
+    #serveBtn, #clearBtn { font-size:18px; padding:9px 16px; }
   }
   /* 矮屏（横屏手机/小窗）：把摊位元素往下收，避免重叠 */
   @media (max-height: 680px) {
@@ -127,6 +128,14 @@
     #plateWrap { bottom:150px; }
     #thief { bottom:96px; font-size:58px; }
   }
+  /* ===== 额外移动端优化 ===== */
+  @media (max-width: 380px) {
+    #ingredients { grid-template-columns: repeat(4, 1fr); }
+    .ing .ie { font-size: 22px; }
+    .ing .inm { font-size: 9px; }
+  }
+  .screen { padding-bottom: max(22px, env(safe-area-inset-bottom)); }
+  #ingredients { padding-bottom: max(8px, env(safe-area-inset-bottom)); }
 </style>
 </head>
 <body>

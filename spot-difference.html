@@ -15,7 +15,7 @@
   * { box-sizing: border-box; }
   /* 主页 */
   #home {
-    min-height: 100vh; display: flex; flex-direction: column;
+    min-height: 100dvh; display: flex; flex-direction: column;
     align-items: center; justify-content: center; text-align: center; padding: 20px;
   }
   #home h1 { font-size: 46px; color: #ff6f3c; text-shadow: 2px 2px 0 #ffd9c2; margin: 0 0 6px; }
@@ -90,6 +90,24 @@
     .panel { width: 92vw; }
   }
   .confetti { position: fixed; font-size: 28px; z-index: 50; pointer-events: none; }
+  /* ===== 移动端优化 ===== */
+  @media (max-width: 760px) {
+    #game { padding-bottom: max(10px, env(safe-area-inset-bottom)); }
+    #bar { gap: 6px; }
+    .minibtn { font-size: 16px; padding: 8px 13px; }
+    #status { font-size: 18px; padding: 7px 14px; }
+    #winMsg { font-size: 24px; }
+  }
+  @media (max-width: 480px) {
+    #home h1 { font-size: 34px; }
+    #home p { font-size: 18px; }
+    .label { font-size: 18px; }
+    .pick { font-size: 18px; padding: 14px 16px; min-width: 110px; }
+    .pick .ic { font-size: 32px; }
+    .btn { font-size: 22px; padding: 12px 36px; }
+    #bar { flex-direction: row; flex-wrap: nowrap; overflow-x: auto; }
+    .minibtn { white-space: nowrap; }
+  }
 </style>
 </head>
 <body>

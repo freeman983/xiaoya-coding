@@ -109,6 +109,12 @@
     #hands { font-size: 120px; }
     #blindText { font-size: 19px; }
   }
+  /* safe-area：防止 iPhone 底部 Home 条遮挡按钮 */
+  #overlay { padding-bottom: max(24px, env(safe-area-inset-bottom)); }
+  /* hover 仅在有 hover 的设备生效，避免触屏残影 */
+  @media (hover: none) {
+    .spot:hover { transform: translate(-50%, -50%); }
+  }
 </style>
 </head>
 <body>
